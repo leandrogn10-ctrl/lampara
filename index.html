@@ -411,6 +411,8 @@ dialog::backdrop { background: rgba(8, 5, 3, 0.78); backdrop-filter: blur(4px); 
 .lamp-arrow { font-size: 20px; line-height: 1; color: var(--ink-faint); background: transparent; border: 1px solid var(--line); border-radius: 3px; width: 30px; height: 30px; cursor: pointer; transition: all .15s; }
 .lamp-arrow:hover { color: var(--accent); border-color: var(--accent); }
 .lamp-arrow:disabled { opacity: .3; cursor: default; }
+.lamp-study-btn { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); background: rgba(245,166,35,0.06); border: 1px solid rgba(245,166,35,0.35); border-radius: 14px; padding: 6px 14px; cursor: pointer; transition: all .15s; }
+.lamp-study-btn:hover { background: rgba(245,166,35,0.14); border-color: var(--accent); }
 .lamp-srcs { display: flex; gap: 2px; margin-left: auto; align-items: center; }
 .lamp-src { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); background: transparent; border: 1px solid var(--line); padding: 5px 9px; cursor: pointer; transition: all .15s; }
 .lamp-src:first-child { border-radius: 3px 0 0 3px; } .lamp-src:last-child { border-radius: 0 3px 3px 0; border-left: none; }
@@ -465,8 +467,22 @@ dialog::backdrop { background: rgba(8, 5, 3, 0.78); backdrop-filter: blur(4px); 
 .lamp-vrow.hl { background: rgba(245,166,35,0.08); }
 .lamp-vrow.hl:hover { background: rgba(245,166,35,0.12); }
 
-.lamp-margin { position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 92vw); z-index: 55; background: var(--bg-elev); border-left: 1px solid var(--line); box-shadow: -12px 0 40px rgba(0,0,0,0.5); display: flex; flex-direction: column; padding: 18px 20px; overflow-y: auto; animation: lampslide .28s cubic-bezier(.2,.9,.25,1); }
-.lamp-margin[hidden] { display: none; }
+.lamp-margin, .lamp-chapter { position: fixed; top: 0; right: 0; bottom: 0; z-index: 55; background: var(--bg-elev); border-left: 1px solid var(--line); box-shadow: -12px 0 40px rgba(0,0,0,0.5); display: flex; flex-direction: column; padding: 18px 20px; overflow-y: auto; animation: lampslide .28s cubic-bezier(.2,.9,.25,1); }
+.lamp-margin { width: min(420px, 92vw); }
+.lamp-chapter { width: min(560px, 94vw); z-index: 56; }
+.lamp-margin[hidden], .lamp-chapter[hidden] { display: none; }
+.lamp-chapter-actions { display: flex; gap: 6px; align-items: center; }
+.lamp-chapter-body { margin-top: 16px; }
+.lamp-st-sec { margin-bottom: 22px; }
+.lamp-st-h { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 7px; }
+.lamp-st-body { font-family: 'Spectral', serif; font-size: 15.5px; line-height: 1.62; color: var(--ink-dim); }
+.lamp-st-body strong { color: var(--ink); } .lamp-st-body em { color: var(--gold); font-style: italic; } .lamp-st-body code { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--accent); }
+.lamp-st-body h3 { font-family: 'Cormorant', serif; font-style: italic; font-size: 18px; color: var(--ink); margin: 10px 0 3px; }
+.lamp-st-claves { display: flex; flex-direction: column; gap: 7px; }
+.lamp-clave { text-align: left; background: var(--paper); border: 1px solid var(--line); border-left: 2px solid var(--accent); border-radius: 4px; padding: 9px 12px; cursor: pointer; font-family: 'Spectral', serif; font-size: 14px; line-height: 1.5; color: var(--ink-dim); transition: all .15s; }
+.lamp-clave:hover { border-color: var(--accent); color: var(--ink); }
+.lamp-clave-ref { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .04em; color: var(--accent); display: block; margin-bottom: 2px; }
+.lamp-st-pregunta { font-family: 'Cormorant', serif; font-style: italic; font-size: 22px; line-height: 1.4; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 14px; }
 @keyframes lampslide { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
 .lamp-margin-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .lamp-margin-ref { font-family: 'Cormorant', serif; font-style: italic; font-weight: 600; font-size: 26px; color: var(--ink); }
@@ -559,6 +575,7 @@ dialog::backdrop { background: rgba(8, 5, 3, 0.78); backdrop-filter: blur(4px); 
         <button id="lamp-prev" class="lamp-arrow" title="Capítulo anterior">‹</button>
         <button id="lamp-next" class="lamp-arrow" title="Capítulo siguiente">›</button>
       </div>
+      <button id="lamp-chapstudy" class="lamp-study-btn" title="Estudio del capítulo entero (Sonnet)">✦ Estudio del capítulo</button>
       <div class="lamp-srcs" id="lamp-srcs" title="Versión en español">
         <button class="lamp-src" data-src="ntv">NTV</button>
         <button class="lamp-src" data-src="rv1909">RV1909</button>
@@ -614,6 +631,16 @@ dialog::backdrop { background: rgba(8, 5, 3, 0.78); backdrop-filter: blur(4px); 
           <button class="lamp-save" id="lamp-scholar-send">Preguntar</button>
         </div>
       </div>
+    </aside>
+    <aside id="lamp-chapter" class="lamp-chapter" hidden>
+      <div class="lamp-margin-head">
+        <div class="lamp-margin-ref" id="lamp-chapter-ref"></div>
+        <div class="lamp-chapter-actions">
+          <button class="lamp-iconbtn" id="lamp-chapter-refresh" title="Regenerar (vuelve a consultar a Sonnet)">↻</button>
+          <button class="lamp-search-x" id="lamp-chapter-x" title="Cerrar (Esc)">✕</button>
+        </div>
+      </div>
+      <div class="lamp-chapter-body" id="lamp-chapter-body"></div>
     </aside>
   </main>
 </div>
@@ -1038,6 +1065,8 @@ const LAMP = {
   },
 
   /* ── Phase C: Claude as SCHOLAR + interlocutor (never plays priest). API-key path via the shell's callClaude. ── */
+  MODEL_VERSE: 'claude-haiku-4-5-20251001',   // per-verse lenses + Q&A → fast/cheap
+  MODEL_CHAPTER: 'claude-sonnet-4-6',          // whole-chapter study → deeper, worth the cost
   SCHOLAR_LENSES: {
     contexto: { label: 'Contexto', q: 'Dame el contexto histórico y cultural de este pasaje: quién escribe, a quién, cuándo, en qué situación, y qué supuestos culturales hay que conocer para leerlo bien.' },
     lengua: { label: 'Griego / Hebreo', q: 'Haz un breve estudio de las palabras clave en el idioma original (hebreo o griego): transliteración, rango de significado, y dónde la traducción toma una decisión interpretativa.' },
@@ -1076,7 +1105,7 @@ const LAMP = {
     const prior = this.scholar.turns.slice(0, -1).slice(-4).map(x => (x.role === 'user' ? 'P: ' : 'R: ') + x.text).join('\n');
     const userMessage = `Pasaje: ${this.refLabel(ref)}\nES: "${t.es}"\nEN (BSB): "${t.en}"` + (prior ? `\n\nConversación previa:\n${prior}` : '') + `\n\nPregunta: ${input}`;
     try {
-      const out = await callClaude({ system: this.buildScholarSystem(), userMessage, maxTokens: 1100 });
+      const out = await callClaude({ system: this.buildScholarSystem(), userMessage, maxTokens: 1100, model: this.MODEL_VERSE });
       this.scholar.turns.push({ role: 'assistant', text: out });
     } catch (e) {
       this.scholar.turns.push({ role: 'assistant', text: '⚠ No se pudo consultar al erudito: ' + e.message, error: true });
@@ -1107,6 +1136,61 @@ const LAMP = {
     state.notes.push({ id: this.uid(), ref: this.activeRef, kind: 'note', body: '✦ Del erudito:\n' + turn.text, created: Date.now(), updated: Date.now() });
     save(); this.render();
     try { toast('Guardado en el margen.'); } catch (e) {}
+  },
+
+  /* ── Chapter study (Sonnet): whole chapter through the four lenses + key verses + a question. Cached, regenerable. ── */
+  studyCacheKey(bookId, ch) { return `lampara.study.v1.${bookId}.${ch}`; },
+  openChapterStudy() {
+    const { bookId, ch } = this.cur;
+    document.getElementById('lamp-chapter').hidden = false;
+    document.getElementById('lamp-chapter-ref').textContent = `${this.byId[bookId].es} ${ch} · Estudio`;
+    let cached = null; try { cached = JSON.parse(localStorage.getItem(this.studyCacheKey(bookId, ch)) || 'null'); } catch (e) {}
+    if (cached) this.renderChapterStudy(cached, bookId, ch); else this.fetchChapterStudy();
+  },
+  closeChapterStudy() { document.getElementById('lamp-chapter').hidden = true; },
+  async fetchChapterStudy() {
+    const { bookId, ch } = this.cur, body = document.getElementById('lamp-chapter-body');
+    if (!isClaudeEnabled()) {
+      body.innerHTML = `<div class="lamp-sch-hint">El estudio del capítulo necesita tu clave de Anthropic. <button id="lamp-st-settings">Conéctala en Ajustes</button>.</div>`;
+      const b = document.getElementById('lamp-st-settings'); if (b) b.onclick = () => document.getElementById('settings-btn').click(); return;
+    }
+    body.innerHTML = `<div class="lamp-sch-pending">El erudito está leyendo todo ${this.byId[bookId].es} ${ch} con calma (Sonnet)…</div>`;
+    await this.ensureText('rv1909');
+    const chap = (this.text.rv1909[bookId] && this.text.rv1909[bookId][ch]) || {};
+    const lines = Object.keys(chap).map(Number).sort((a, b) => a - b).map(v => `${v} ${chap[v]}`).join('\n');
+    const userMessage = `Estudia el capítulo ENTERO: ${this.byId[bookId].es} ${ch}.\nTexto (Reina-Valera 1909):\n${lines}\n\n`
+      + `Devuelve SOLO JSON válido (sin markdown, sin texto fuera del objeto) con esta forma exacta:\n`
+      + `{"panorama":"2-4 frases: de qué trata el capítulo y su movimiento/estructura literaria",`
+      + `"contexto":"contexto histórico y cultural del capítulo",`
+      + `"lengua":"2-4 términos clave del idioma original (hebreo/griego): transliteración y matiz",`
+      + `"tradiciones":"cómo lo leen las tradiciones —católica, ortodoxa, reformada, crítica— atribuido por nombre donde puedas",`
+      + `"claves":[{"v":<número de versículo>,"porque":"por qué es especialmente significativo"}],`
+      + `"aplicacion":"aplicación a la vida de Leandro (19, Georgetown, camino a Bain) como posibilidades y preguntas, no veredictos",`
+      + `"pregunta":"una sola pregunta para meditar"}\n`
+      + `"claves": elige de 3 a 5 versículos. Recuerda el límite: informas y preguntas, no hablas por Dios ni dictas veredictos; no inventes datos. Las cadenas pueden usar markdown ligero (**negritas**, _itálica_).`;
+    try {
+      const out = await callClaude({ system: this.buildScholarSystem(), userMessage, maxTokens: 2600, model: this.MODEL_CHAPTER });
+      const m = out.match(/\{[\s\S]*\}/); if (!m) throw new Error('formato inesperado');
+      const obj = JSON.parse(m[0]);
+      try { localStorage.setItem(this.studyCacheKey(bookId, ch), JSON.stringify(obj)); } catch (e) {}
+      if (this.cur.bookId === bookId && this.cur.ch === ch && !document.getElementById('lamp-chapter').hidden) this.renderChapterStudy(obj, bookId, ch);
+    } catch (e) {
+      body.innerHTML = `<div class="lamp-sch-hint">No se pudo generar el estudio: ${e.message}. <button id="lamp-st-retry">Reintentar</button></div>`;
+      const b = document.getElementById('lamp-st-retry'); if (b) b.onclick = () => this.fetchChapterStudy();
+    }
+  },
+  renderChapterStudy(d, bookId, ch) {
+    const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const sec = (label, txt) => txt ? `<div class="lamp-st-sec"><div class="lamp-st-h">${label}</div><div class="lamp-st-body">${this.mdLite(txt)}</div></div>` : '';
+    let H = sec('Panorama', d.panorama) + sec('Contexto', d.contexto) + sec('Lengua original', d.lengua) + sec('Tradiciones', d.tradiciones);
+    if (Array.isArray(d.claves) && d.claves.length) {
+      H += `<div class="lamp-st-sec"><div class="lamp-st-h">Versículos clave</div><div class="lamp-st-claves">`
+        + d.claves.filter(k => k && k.v).map(k => `<button class="lamp-clave" data-v="${esc(String(k.v))}"><span class="lamp-clave-ref">${esc(this.byId[bookId].es)} ${ch}:${esc(String(k.v))}</span>${esc(k.porque || '')}</button>`).join('')
+        + `</div></div>`;
+    }
+    H += sec('Para tu vida', d.aplicacion);
+    if (d.pregunta) H += `<div class="lamp-st-sec"><div class="lamp-st-h">Para meditar</div><div class="lamp-st-pregunta">${esc(d.pregunta)}</div></div>`;
+    const body = document.getElementById('lamp-chapter-body'); body.innerHTML = H; body.scrollTop = 0;
   },
 
   async boot() {
@@ -1150,12 +1234,18 @@ const LAMP = {
     document.getElementById('lamp-scholar-send').addEventListener('click', () => { const q = document.getElementById('lamp-scholar-q'); const v = q.value.trim(); if (v) { q.value = ''; this.askScholar(v, v); } });
     document.getElementById('lamp-scholar-q').addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); document.getElementById('lamp-scholar-send').click(); } });
     document.getElementById('lamp-scholar-thread').addEventListener('click', e => { const s = e.target.closest('.lamp-sch-save'); if (s) this.saveScholarFromThread(+s.dataset.i); });
+    // chapter study (Sonnet)
+    document.getElementById('lamp-chapstudy').addEventListener('click', () => this.openChapterStudy());
+    document.getElementById('lamp-chapter-x').addEventListener('click', () => this.closeChapterStudy());
+    document.getElementById('lamp-chapter-refresh').addEventListener('click', () => { try { localStorage.removeItem(this.studyCacheKey(this.cur.bookId, this.cur.ch)); } catch (e) {} this.fetchChapterStudy(); });
+    document.getElementById('lamp-chapter-body').addEventListener('click', e => { const c = e.target.closest('.lamp-clave'); if (c) { const v = +c.dataset.v; this.closeChapterStudy(); this.go(this.cur.bookId, this.cur.ch, true, v); } });
     document.addEventListener('keydown', e => {
       const t = e.target.tagName, typing = (t === 'SELECT' || t === 'INPUT' || t === 'TEXTAREA');
-      const searchOpen = !document.getElementById('lamp-search').hidden, marginOpen = !document.getElementById('lamp-margin').hidden;
+      const searchOpen = !document.getElementById('lamp-search').hidden, marginOpen = !document.getElementById('lamp-margin').hidden, chapterOpen = !document.getElementById('lamp-chapter').hidden;
+      if (e.key === 'Escape' && chapterOpen) { this.closeChapterStudy(); return; }
       if (e.key === 'Escape' && marginOpen) { this.closeMargin(); return; }
-      if (e.key === '/' && !typing && !searchOpen && !marginOpen) { e.preventDefault(); this.openSearch(); return; }
-      if (typing || searchOpen) return;
+      if (e.key === '/' && !typing && !searchOpen && !marginOpen && !chapterOpen) { e.preventDefault(); this.openSearch(); return; }
+      if (typing || searchOpen || chapterOpen) return;
       if (e.key === 'ArrowLeft') this.step(-1); else if (e.key === 'ArrowRight') this.step(1);
     });
     this.syncSrcButtons();
@@ -1389,11 +1479,11 @@ document.getElementById('sync-disable-btn').addEventListener('click', () => {
 
 /* ── Claude plumbing (Bitácora's; system prompt comes from the appBuildClaudeSystem slot) ── */
 function isClaudeEnabled() { return !!(state.settings.claude.enabled && state.settings.claude.apiKey); }
-async function callClaude({ system, userMessage, maxTokens = 350 }) {
+async function callClaude({ system, userMessage, maxTokens = 350, model }) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': state.settings.claude.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-    body: JSON.stringify({ model: state.settings.claude.model, max_tokens: maxTokens, system: system ?? appBuildClaudeSystem(), messages: [{ role: 'user', content: userMessage }] }),
+    body: JSON.stringify({ model: model || state.settings.claude.model, max_tokens: maxTokens, system: system ?? appBuildClaudeSystem(), messages: [{ role: 'user', content: userMessage }] }),
   });
   if (!res.ok) {
     const txt = await res.text();
