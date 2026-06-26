@@ -435,6 +435,26 @@ dialog::backdrop { background: rgba(8, 5, 3, 0.78); backdrop-filter: blur(4px); 
   .lamp-vtext.en { grid-column: 2; color: var(--ink-faint); padding-top: 3px; }
   .lamp-colhead .lh.en { display: none; }
 }
+.lamp-iconbtn { font-size: 18px; line-height: 1; color: var(--ink-dim); background: transparent; border: 1px solid var(--line); border-radius: 3px; width: 32px; height: 28px; cursor: pointer; transition: all .15s; }
+.lamp-iconbtn:hover { color: var(--accent); border-color: var(--accent); }
+.lamp-vrow.flash { animation: lampflash 1.6s ease-out; }
+@keyframes lampflash { 0%, 30% { background: rgba(245,166,35,0.18); } 100% { background: transparent; } }
+
+/* search overlay */
+.lamp-search-ov { position: fixed; inset: 0; z-index: 60; background: rgba(10,6,3,0.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: flex; flex-direction: column; align-items: center; padding: 8vh 16px 16px; }
+.lamp-search-ov[hidden] { display: none; }
+.lamp-search-box { display: flex; align-items: center; gap: 8px; width: min(680px, 94vw); background: var(--bg-elev); border: 1px solid var(--line); border-radius: 4px; padding: 4px 4px 4px 16px; box-shadow: var(--shadow); }
+.lamp-search-in { flex: 1; background: transparent; border: none; outline: none; color: var(--ink); font-family: 'Spectral', serif; font-size: 19px; padding: 12px 0; }
+.lamp-search-in::placeholder { color: var(--ink-faint); font-style: italic; }
+.lamp-search-x { font-size: 13px; color: var(--ink-faint); background: transparent; border: none; cursor: pointer; padding: 8px 12px; }
+.lamp-search-x:hover { color: var(--accent); }
+.lamp-search-results { width: min(680px, 94vw); margin-top: 10px; overflow-y: auto; flex: 1; }
+.lamp-sresult { display: block; width: 100%; text-align: left; background: transparent; border: none; border-bottom: 1px solid var(--line-soft); padding: 12px 10px; cursor: pointer; transition: background .12s; }
+.lamp-sresult:hover, .lamp-sresult.sel { background: var(--bg-elev); }
+.lamp-sref { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: 3px; }
+.lamp-ssnip { font-family: 'Cormorant', serif; font-size: 17px; color: var(--ink-dim); line-height: 1.4; }
+.lamp-ssnip mark { background: rgba(245,166,35,0.22); color: var(--ink); padding: 0 1px; }
+.lamp-shint { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-faint); padding: 14px 10px; }
 </style>
 </head>
 <body>
@@ -446,7 +466,8 @@ dialog::backdrop { background: rgba(8, 5, 3, 0.78); backdrop-filter: blur(4px); 
       <span class="tagline" id="brand-tagline"></span>
     </div>
     <div class="actions">
-      <!-- SLOT:TOPBAR-ACTIONS — app buttons (search, +entry, …) go here -->
+      <!-- SLOT:TOPBAR-ACTIONS -->
+      <button class="lamp-iconbtn" id="lamp-search-btn" title="Buscar (/)">⌕</button>
       <button class="sync-pip" id="sync-pip" title="cloud sync — click for settings"><span class="dot"></span><span id="sync-pip-label">offline</span></button>
     </div>
   </header>
@@ -479,6 +500,14 @@ dialog::backdrop { background: rgba(8, 5, 3, 0.78); backdrop-filter: blur(4px); 
     </div>
     <div id="lamp-read" class="lamp-read">
       <div class="empty-state"><div class="ornament">🕯</div><h3>Encendiendo la lámpara…</h3></div>
+    </div>
+    <div id="lamp-search" class="lamp-search-ov" hidden>
+      <div class="lamp-search-box">
+        <input id="lamp-search-in" class="lamp-search-in" type="text" autocomplete="off" spellcheck="false"
+               placeholder="Buscar un texto, o saltar a «Juan 3:16»…">
+        <button class="lamp-search-x" id="lamp-search-x" title="Cerrar (Esc)">✕</button>
+      </div>
+      <div id="lamp-search-results" class="lamp-search-results"></div>
     </div>
   </main>
 </div>
@@ -709,7 +738,12 @@ const LAMP = {
       }
       H += `<div class="lamp-cite">${bk.es} ${ch} · ${esLabel} ∥ Berean Standard Bible${fellBack ? ' · NTV no disponible, mostrando RV1909' : ''}</div>`;
       root.innerHTML = H;
-      root.scrollTop = 0;
+      if (this.flashV != null) {                          // arrived via search → spotlight the verse
+        const row = root.querySelector(`.lamp-vrow[data-v="${this.flashV}"]`);
+        this.flashV = null;
+        if (row) { row.scrollIntoView({ block: 'center' }); row.classList.add('flash'); }
+        else root.scrollTop = 0;
+      } else root.scrollTop = 0;
     }).catch(err => { root.innerHTML = `<div class="lamp-loading">No se pudo cargar el capítulo: ${err.message}</div>`; });
     this.syncSrcButtons();
   },
@@ -731,10 +765,11 @@ const LAMP = {
     const last = this.books[this.books.length - 1];
     document.getElementById('lamp-next').disabled = (this.cur.bookId === last.id && this.cur.ch === last.ch);
   },
-  go(bookId, ch, persist = true) {
+  go(bookId, ch, persist = true, v = null) {
     const bk = this.byId[bookId]; if (!bk) return;
     ch = Math.max(1, Math.min(bk.ch, ch));
     this.cur = { bookId, ch };
+    this.flashV = v;                                      // render() will scroll to + flash this verse once
     if (persist) { state.reading = { bookId, ch }; save(); }
     this.populateChaps();
     document.getElementById('lamp-book').value = bookId;
@@ -755,7 +790,87 @@ const LAMP = {
     }
     state.spanishSrc = src; save(); this.render();
   },
-  openSearch() { toast('Búsqueda — próximamente (Fase A.2)'); },
+  /* ── A.2 search: reference-jump (es/en) + accent-insensitive full-text over the PD bundle ── */
+  norm(s) { return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); },
+  matchBook(phrase) {
+    const p = this.norm(phrase).replace(/\s+/g, ' ').trim(); if (!p) return null;
+    let exact = null, pre = null;
+    for (const b of this.books) {
+      const en = this.norm(b.en), es = this.norm(b.es);
+      if (en === p || es === p) { exact = b; break; }
+      if (!pre && p.length >= 3 && (en.startsWith(p) || es.startsWith(p))) pre = b;
+    }
+    return exact || pre;
+  },
+  parseRef(q) {                                           // "Juan 3:16" / "1 john 2" → {bookId, ch, v?}
+    const m = q.trim().match(/^(.+?)\s+(\d+)(?::(\d+))?$/); if (!m) return null;
+    const bk = this.matchBook(m[1]); if (!bk) return null;
+    const ch = Math.min(bk.ch, Math.max(1, +m[2]));
+    return { bookId: bk.id, ch, v: m[3] ? +m[3] : null };
+  },
+  openSearch() {                                          // show instantly; load the bundle in the background
+    const ov = document.getElementById('lamp-search'); ov.hidden = false;
+    const inp = document.getElementById('lamp-search-in'); inp.focus(); inp.select();
+    if (!this.text.bsb || !this.text.rv1909) {
+      Promise.all([this.ensureText('bsb'), this.ensureText('rv1909')]).then(() => { if (!document.getElementById('lamp-search').hidden) this.runSearch(inp.value); });
+    }
+    if (inp.value.trim()) this.runSearch(inp.value);
+  },
+  closeSearch() { document.getElementById('lamp-search').hidden = true; },
+  runSearch(q) {
+    const box = document.getElementById('lamp-search-results');
+    q = q.trim();
+    if (q.length < 2) { box.innerHTML = `<div class="lamp-shint">Escribe al menos 2 letras — o una referencia como «Salmos 23».</div>`; this.results = []; return; }
+    if (!this.text.bsb || !this.text.rv1909) { box.innerHTML = `<div class="lamp-shint">Cargando el texto…</div>`; this.results = []; return; }
+    const items = [], ref = this.parseRef(q);
+    if (ref) { const b = this.byId[ref.bookId]; items.push({ jump: true, bookId: ref.bookId, ch: ref.ch, v: ref.v, label: `${b.es} ${ref.ch}${ref.v ? ':' + ref.v : ''}` }); }
+    const words = this.norm(q).split(/\s+/).filter(Boolean), CAP = 60;   // AND-of-words, accent-insensitive (order-independent)
+    const hit = t => { const n = this.norm(t); return words.every(w => n.includes(w)); };
+    const rv = this.text.rv1909, bsb = this.text.bsb;
+    outer:
+    for (const b of this.books) {
+      const rb = rv[b.id], bb = bsb[b.id];
+      for (const ch in rb) {
+        for (const v in rb[ch]) {
+          const es = rb[ch][v], en = (bb[ch] && bb[ch][v]) || '';
+          const inEs = hit(es), inEn = !inEs && hit(en);
+          if (inEs || inEn) { items.push({ bookId: b.id, ch: +ch, v: +v, ref: `${b.es} ${ch}:${v}`, text: inEs ? es : en, words }); if (items.length >= CAP) break outer; }
+        }
+      }
+    }
+    this.results = items;
+    this.renderResults();
+  },
+  renderResults() {
+    const box = document.getElementById('lamp-search-results');
+    if (!this.results.length) { box.innerHTML = `<div class="lamp-shint">Sin resultados.</div>`; return; }
+    const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const AC = { a: 'aáàäâ', e: 'eéèëê', i: 'iíìïî', o: 'oóòöô', u: 'uúùüû', n: 'nñ', c: 'cç' };   // highlight any query word, accent-tolerant
+    const hl = (t, words) => {
+      const alt = words.map(w => w.split('').map(ch => AC[ch] ? '[' + AC[ch] + ']' : ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('')).filter(Boolean);
+      if (!alt.length) return esc(t);
+      const re = new RegExp('(' + alt.join('|') + ')', 'gi');
+      return esc(t).replace(re, '<mark>$1</mark>');
+    };
+    this.results.forEach((r, idx) => { r.idx = idx; });
+    box.innerHTML = this.results.map(r => r.jump
+      ? `<button class="lamp-sresult" data-idx="${r.idx}"><div class="lamp-sref">→ Ir a</div><div class="lamp-ssnip">${esc(r.label)}</div></button>`
+      : `<button class="lamp-sresult" data-idx="${r.idx}"><div class="lamp-sref">${esc(r.ref)}</div><div class="lamp-ssnip">${hl(r.text, r.words)}</div></button>`
+    ).join('');
+    this.selIdx = -1;
+  },
+  pickResult(idx) {
+    const r = this.results[idx]; if (!r) return;
+    this.closeSearch();
+    this.go(r.bookId, r.ch, true, r.v);
+  },
+  moveSel(d) {
+    if (!this.results || !this.results.length) return;
+    this.selIdx = ((this.selIdx + d) % this.results.length + this.results.length) % this.results.length;
+    const btns = document.querySelectorAll('.lamp-sresult');
+    btns.forEach((b, i) => b.classList.toggle('sel', i === this.selIdx));
+    if (btns[this.selIdx]) btns[this.selIdx].scrollIntoView({ block: 'nearest' });
+  },
 
   async boot() {
     document.querySelector('.brand h1').textContent = APP.name;
@@ -771,7 +886,26 @@ const LAMP = {
     document.getElementById('lamp-prev').addEventListener('click', () => this.step(-1));
     document.getElementById('lamp-next').addEventListener('click', () => this.step(1));
     document.getElementById('lamp-srcs').addEventListener('click', e => { const b = e.target.closest('.lamp-src'); if (b) this.setSpanishSrc(b.dataset.src); });
-    document.addEventListener('keydown', e => { if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return; if (e.key === 'ArrowLeft') this.step(-1); else if (e.key === 'ArrowRight') this.step(1); });
+    // search
+    const sin = document.getElementById('lamp-search-in'); let sdeb;
+    document.getElementById('lamp-search-btn').addEventListener('click', () => this.openSearch());
+    document.getElementById('lamp-search-x').addEventListener('click', () => this.closeSearch());
+    sin.addEventListener('input', () => { clearTimeout(sdeb); sdeb = setTimeout(() => this.runSearch(sin.value), 160); });
+    sin.addEventListener('keydown', e => {
+      if (e.key === 'Escape') this.closeSearch();
+      else if (e.key === 'ArrowDown') { e.preventDefault(); this.moveSel(1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); this.moveSel(-1); }
+      else if (e.key === 'Enter') { e.preventDefault(); this.pickResult(this.selIdx >= 0 ? this.selIdx : 0); }
+    });
+    document.getElementById('lamp-search-results').addEventListener('click', e => { const b = e.target.closest('.lamp-sresult'); if (b) this.pickResult(+b.dataset.idx); });
+    document.getElementById('lamp-search').addEventListener('click', e => { if (e.target.id === 'lamp-search') this.closeSearch(); });
+    document.addEventListener('keydown', e => {
+      const t = e.target.tagName, typing = (t === 'SELECT' || t === 'INPUT' || t === 'TEXTAREA');
+      const searchOpen = !document.getElementById('lamp-search').hidden;
+      if (e.key === '/' && !typing && !searchOpen) { e.preventDefault(); this.openSearch(); return; }
+      if (typing || searchOpen) return;
+      if (e.key === 'ArrowLeft') this.step(-1); else if (e.key === 'ArrowRight') this.step(1);
+    });
     this.syncSrcButtons();
     this.render();
   },
