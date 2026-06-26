@@ -1,0 +1,4 @@
+# secrets — NTV/NLT + Claude keys live in localStorage (Settings), never the repo
+*.key
+.env
+.DS_Store
