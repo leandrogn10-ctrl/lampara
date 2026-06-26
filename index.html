@@ -1203,6 +1203,16 @@ const LAMP = {
     s = s.replace(/(?:^|\n)((?:\s*[-•]\s+.+(?:\n|$))+)/g, m => '<ul>' + m.trim().split('\n').map(l => '<li>' + l.replace(/^\s*[-•]\s+/, '') + '</li>').join('') + '</ul>');
     return s.split(/\n{2,}/).map(b => /^\s*<(h3|ul)/.test(b) ? b : '<p>' + b.trim().replace(/\n/g, '<br>') + '</p>').filter(b => b !== '<p></p>').join('');
   },
+  _extractJSON(t) {                                       // first COMPLETE balanced {...} (tolerates preamble/fences; returns null if truncated)
+    t = String(t); const i = t.indexOf('{'); if (i < 0) return null;
+    let depth = 0, inStr = false, esc = false;
+    for (let j = i; j < t.length; j++) {
+      const c = t[j];
+      if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; }
+      else if (c === '"') inStr = true; else if (c === '{') depth++; else if (c === '}') { if (--depth === 0) return t.slice(i, j + 1); }
+    }
+    return null;
+  },
   setTab(tab) {
     this.tab = tab;
     document.querySelectorAll('.lamp-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
@@ -1319,11 +1329,11 @@ const LAMP = {
       + `"claves":[{"v":<número de versículo>,"porque":"por qué es especialmente significativo"}],`
       + `"aplicacion":"aplicación a la vida de Leandro (19, Georgetown, camino a Bain) como posibilidades y preguntas, no veredictos",`
       + `"pregunta":"una sola pregunta para meditar"}\n`
-      + `"claves": elige de 3 a 5 versículos. ${ctx.hasCurrent ? 'Si un versículo que él anotó en este capítulo es relevante, inclúyelo entre las claves. ' : ''}Recuerda el límite: informas y preguntas, no hablas por Dios ni dictas veredictos; no inventes datos. Markdown ligero (**negritas**, _itálica_) permitido en las cadenas.`;
+      + `"claves": elige de 3 a 5 versículos. ${ctx.hasCurrent ? 'Si un versículo que él anotó en este capítulo es relevante, inclúyelo entre las claves. ' : ''}Sé CONCISO: cada campo de texto en 2-4 frases densas (no te extiendas, debe caber completo). Recuerda el límite: informas y preguntas, no hablas por Dios ni dictas veredictos; no inventes datos. Markdown ligero (**negritas**, _itálica_) permitido en las cadenas.`;
     try {
-      const out = await callClaude({ system: this.buildScholarSystem(), userMessage, maxTokens: 2800, model: this.MODEL_CHAPTER });
-      const m = out.match(/\{[\s\S]*\}/); if (!m) throw new Error('formato inesperado');
-      const obj = JSON.parse(m[0]); obj._sig = sig;
+      const out = await callClaude({ system: this.buildScholarSystem(), userMessage, maxTokens: 4096, model: this.MODEL_CHAPTER });
+      const j = this._extractJSON(out); if (!j) throw new Error(out && out.length > 40 ? 'respuesta incompleta, reintenta' : 'formato inesperado');
+      const obj = JSON.parse(j); obj._sig = sig;
       try { localStorage.setItem(this.studyCacheKey(bookId, ch), JSON.stringify(obj)); } catch (e) {}
       if (this.cur.bookId === bookId && this.cur.ch === ch && !document.getElementById('lamp-chapter').hidden) this.renderChapterStudy(obj, bookId, ch);
     } catch (e) {
@@ -1454,9 +1464,9 @@ const LAMP = {
     const system = 'Eres un guía de lectura bíblica para Leandro (protestante, 19, Georgetown). Diseñas planes de lectura con sentido temático o narrativo, realistas y abarcables. NO gamificas: es un camino, no una obligación.';
     const userMessage = `Objetivo de Leandro: «${goal}».\nDiseña un plan de lectura de la Biblia hacia ese objetivo. Devuelve SOLO JSON válido:\n{"name":"nombre corto del plan","units":[{"label":"etiqueta legible (p.ej. 'Romanos 1–4' o 'Salmo 22; Mateo 27')","chapters":[{"book":"<nombre del libro en español>","ch":<número>}]}]}\nEntre 6 y 24 unidades, cada una abarcable en una sentada, ordenadas con sentido pedagógico. Solo libros y capítulos que existen. Nada de texto fuera del JSON.`;
     try {
-      const out = await callClaude({ system, userMessage, maxTokens: 2000, model: this.MODEL_CHAPTER });
-      const m = out.match(/\{[\s\S]*\}/); if (!m) throw new Error('formato');
-      const obj = JSON.parse(m[0]);
+      const out = await callClaude({ system, userMessage, maxTokens: 3000, model: this.MODEL_CHAPTER });
+      const j = this._extractJSON(out); if (!j) throw new Error('formato');
+      const obj = JSON.parse(j);
       const units = (obj.units || []).map(u => {
         const chs = (u.chapters || []).map(c => { const bk = this.matchBook(c.book || ''), ch = +c.ch; return (bk && ch >= 1 && ch <= bk.ch) ? `${bk.id}.${ch}` : null; }).filter(Boolean);
         return chs.length ? { label: String(u.label || chs[0]).slice(0, 60), chapters: chs } : null;
