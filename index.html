@@ -1018,7 +1018,7 @@ const LAMP = {
     ch = Math.max(1, Math.min(bk.ch, ch));
     this.cur = { bookId, ch };
     this.flashV = v;                                      // render() will scroll to + flash this verse once
-    if (persist) { state.reading = { bookId, ch }; save(); }
+    if (persist) { state.reading = { bookId, ch, label: bk.es + ' ' + ch }; save(); }   // label so the city can show "Juan 3", not the slug
     this.populateChaps();
     document.getElementById('lamp-book').value = bookId;
     this.render();
@@ -1155,7 +1155,7 @@ const LAMP = {
     const KIND = { note: 'Nota', question: 'Pregunta', prayer: 'Oración', highlight: 'Destacado' };
     const notes = state.notes.filter(n => n.ref === ref).sort((a, b) => a.created - b.created);
     document.getElementById('lamp-margin-notes').innerHTML = notes.length
-      ? notes.map(n => `<div class="lamp-note"><button class="lamp-note-del" data-id="${n.id}" title="Borrar">✕</button><div class="lamp-note-kind">${KIND[n.kind] || 'Nota'}</div>${n.body ? `<div class="lamp-note-text">${esc(n.body)}</div>` : ''}<div class="lamp-note-meta">${this.fmtDate(n.created)}</div></div>`).join('')
+      ? notes.map(n => `<div class="lamp-note"><button class="lamp-note-del" data-id="${escapeHtml(n.id)}" title="Borrar">✕</button><div class="lamp-note-kind">${KIND[n.kind] || 'Nota'}</div>${n.body ? `<div class="lamp-note-text">${esc(n.body)}</div>` : ''}<div class="lamp-note-meta">${this.fmtDate(n.created)}</div></div>`).join('')
       : `<div class="lamp-margin-empty">Aún no hay nada en este margen. Escribe la primera línea — quedará para toda la vida.</div>`;
     const memo = state.memory.some(m => m.ref === ref), mb = document.getElementById('lamp-memorize');
     mb.classList.toggle('on', memo); mb.textContent = memo ? '✶ En el mazo' : '✶ Memorizar';
@@ -1348,7 +1348,7 @@ const LAMP = {
     let H = sec('Panorama', d.panorama) + sec('En diálogo contigo', d.dialogo) + sec('Contexto', d.contexto) + sec('Lengua original', d.lengua) + sec('Tradiciones', d.tradiciones);
     if (Array.isArray(d.claves) && d.claves.length) {
       H += `<div class="lamp-st-sec"><div class="lamp-st-h">Versículos clave</div><div class="lamp-st-claves">`
-        + d.claves.filter(k => k && k.v).map(k => `<button class="lamp-clave" data-v="${esc(String(k.v))}"><span class="lamp-clave-ref">${esc(this.byId[bookId].es)} ${ch}:${esc(String(k.v))}</span>${esc(k.porque || '')}</button>`).join('')
+        + d.claves.filter(k => k && /^\d+$/.test(String(k.v))).map(k => `<button class="lamp-clave" data-v="${+k.v}"><span class="lamp-clave-ref">${esc(this.byId[bookId].es)} ${ch}:${+k.v}</span>${esc(k.porque || '')}</button>`).join('')
         + `</div></div>`;
     }
     H += sec('Para tu vida', d.aplicacion);
@@ -1392,7 +1392,7 @@ const LAMP = {
     const notes = this.nbMatches(q);
     if (!notes.length) { box.innerHTML = H + `<div class="lamp-shint">Ninguna nota coincide.</div>`; return; }
     const words = q ? this.norm(q).split(/\s+/).filter(Boolean) : [];
-    H += notes.map(n => `<button class="lamp-nb-note" data-ref="${esc(n.ref)}"><div class="lamp-nb-meta">${esc(this.refLabel(n.ref))}<span class="k">${KIND[n.kind] || 'Nota'}</span></div><div class="lamp-nb-text">${n.body ? this.hlWords(n.body, words) : '<em>(destacado)</em>'}</div></button>`).join('');
+    H += notes.map(n => `<button class="lamp-nb-note" data-ref="${escapeHtml(n.ref)}"><div class="lamp-nb-meta">${esc(this.refLabel(n.ref))}<span class="k">${KIND[n.kind] || 'Nota'}</span></div><div class="lamp-nb-text">${n.body ? this.hlWords(n.body, words) : '<em>(destacado)</em>'}</div></button>`).join('');
     box.innerHTML = H;
   },
   relevantNotesFor(query, budget) {
@@ -1449,8 +1449,8 @@ const LAMP = {
         + `<div class="lamp-plan-progbar"><i style="width:${pct}%"></i></div>`
         + (completed ? `<div class="lamp-plan-next">Recorriste todo el camino.</div>` : `<div class="lamp-plan-next">Siguiente: <b>${esc(cur.label)}</b></div>`)
         + `<div class="lamp-plan-acts">`
-        + (completed ? `<button class="lamp-plan-act" data-act="restart" data-id="${p.id}">Reiniciar</button>` : `<button class="lamp-plan-act primary" data-act="continue" data-id="${p.id}">Leer ahora</button><button class="lamp-plan-act" data-act="next" data-id="${p.id}">Marcar leído ✓</button>`)
-        + `<button class="lamp-plan-act del" data-act="del" data-id="${p.id}">Eliminar</button>`
+        + (completed ? `<button class="lamp-plan-act" data-act="restart" data-id="${escapeHtml(p.id)}">Reiniciar</button>` : `<button class="lamp-plan-act primary" data-act="continue" data-id="${escapeHtml(p.id)}">Leer ahora</button><button class="lamp-plan-act" data-act="next" data-id="${escapeHtml(p.id)}">Marcar leído ✓</button>`)
+        + `<button class="lamp-plan-act del" data-act="del" data-id="${escapeHtml(p.id)}">Eliminar</button>`
         + `</div></div>`;
     }).join('');
   },
@@ -1690,6 +1690,24 @@ async function gistFetch(method, path, body = null) {
 }
 let syncPushTimer = null;
 function scheduleSyncPush() { if (!isSyncEnabled()) return; clearTimeout(syncPushTimer); syncPushTimer = setTimeout(syncPush, 1500); }
+// Union-merge the accreting "his layer" so a stale device can never clobber the other's notes (last-write-wins
+// would silently lose lifetime marginalia). Favors RETENTION: tombstone-less, so a delete on one device can be
+// resurrected from another — an acceptable trade for never losing a written note. Scalar fields follow lastModified.
+function _mergeHisLayer(local, remote) {
+  const union = (a, b, key, pick) => {                       // start from remote, fold in local; pick(x,y) on key collision
+    const m = new Map(); let added = 0;
+    (b || []).forEach(y => { if (y && y[key] != null) m.set(y[key], y); });
+    (a || []).forEach(x => { if (!x || x[key] == null) return; const y = m.get(x[key]);
+      if (!y) { m.set(x[key], x); added++; } else { const w = pick(x, y); if (w !== y) { m.set(x[key], w); added++; } } });
+    return { list: [...m.values()], added };
+  };
+  const notes = union(local.notes, remote.notes, 'id', (x, y) => (x.updated || 0) > (y.updated || 0) ? x : y);
+  const memory = union(local.memory, remote.memory, 'ref', x => x);
+  const plans = union(local.plans, remote.plans, 'id', (x, y) => (x.position || 0) >= (y.position || 0) ? x : y);  // keep the further-along copy
+  const read = Object.assign({}, remote.read || {}); let readAdded = 0;
+  for (const d in (local.read || {})) { if ((local.read[d] || 0) > (read[d] || 0)) { read[d] = local.read[d]; readAdded++; } }
+  return { notes: notes.list, memory: memory.list, plans: plans.list, read, localContributed: notes.added + memory.added + plans.added + readAdded > 0 };
+}
 async function syncPull(force = false) {
   if (!isSyncEnabled()) return;
   try {
@@ -1697,24 +1715,21 @@ async function syncPull(force = false) {
     const gist = await gistFetch('GET', `/gists/${state.settings.sync.gistId}`);
     const file = gist.files?.[GIST_FILENAME];
     if (!file) { setSyncPipState('on'); return; }
-    const remoteState = JSON.parse(file.content);
+    let content = file.content;
+    if (file.truncated && file.raw_url) content = await (await fetch(file.raw_url)).text();   // gist >1MB isn't inlined → fetch the raw blob
+    const remoteState = JSON.parse(content);
     if (!looksLikeMyState(remoteState)) { toast(`gist file ${GIST_FILENAME} doesn't look like this app's state — not adopting it.`, true); setSyncPipState('error'); return; }
-    const remoteModified = remoteState.lastModified || 0;
-    const localModified = state.lastModified || 0;
-    if (force || remoteModified > localModified) {
-      const preservedSync = state.settings.sync;
-      const preservedClaude = state.settings.claude;
-      state = migrate(remoteState);
-      state.settings.sync = preservedSync;
-      state.settings.claude = preservedClaude;
-      state.settings.sync.lastSyncedAt = Date.now();
-      suppressSync = true; save({ markModified: false, push: false }); suppressSync = false;
-      renderAll();
-      toast('synced from cloud.');
-    } else {
-      state.settings.sync.lastSyncedAt = Date.now();
-      save({ markModified: false, push: false });
-    }
+    const remoteModified = remoteState.lastModified || 0, localModified = state.lastModified || 0;
+    const merged = _mergeHisLayer(state, remoteState);       // never loses notes/plans/memory/read from either side
+    const base = (force || remoteModified > localModified) ? remoteState : state;   // scalar fields (reading, spanishSrc, settings) from the newer side
+    const preservedSync = state.settings.sync, preservedClaude = state.settings.claude;
+    state = migrate({ ...base, notes: merged.notes, memory: merged.memory, plans: merged.plans, read: merged.read });
+    state.settings.sync = preservedSync; state.settings.claude = preservedClaude;
+    state.lastModified = Math.max(localModified, remoteModified);
+    state.settings.sync.lastSyncedAt = Date.now();
+    suppressSync = true; save({ markModified: false, push: false }); suppressSync = false;
+    renderAll();
+    if (merged.localContributed) scheduleSyncPush();         // gist was missing some of our entries → push the union back so it converges
     setSyncPipState('on');
   } catch (e) { console.error('pull', e); toast('pull failed: ' + e.message, true); setSyncPipState('error'); }
 }
