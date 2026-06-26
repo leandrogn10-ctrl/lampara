@@ -480,6 +480,40 @@ dialog::backdrop { background: rgba(8, 5, 3, 0.78); backdrop-filter: blur(4px); 
 .lamp-nb-synthbody h3 { font-family: 'Cormorant', serif; font-style: italic; font-size: 18px; color: var(--ink); margin: 10px 0 3px; }
 .lamp-nb-synthbody p { margin: 7px 0; } .lamp-nb-synthbody ul { margin: 6px 0; padding-left: 18px; }
 
+/* reading plans (Phase D #8) */
+.lamp-plans-panel { width: min(680px, 94vw); max-height: 84vh; overflow-y: auto; background: var(--bg-elev); border: 1px solid var(--line); border-radius: 6px; padding: 22px 24px; box-shadow: var(--shadow); }
+.lamp-plans-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+.lamp-plans-title { font-family: 'Cormorant', serif; font-style: italic; font-weight: 500; font-size: 28px; color: var(--ink); }
+.lamp-plans-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+.lamp-plan-card { background: var(--paper); border: 1px solid var(--line); border-radius: 5px; padding: 14px 16px; }
+.lamp-plan-card.done { opacity: .7; }
+.lamp-plan-name { font-family: 'Cormorant', serif; font-size: 21px; color: var(--ink); }
+.lamp-plan-prog { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .04em; color: var(--ink-faint); margin-top: 2px; }
+.lamp-plan-progbar { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; margin: 9px 0 9px; }
+.lamp-plan-progbar i { display: block; height: 100%; background: var(--accent); transition: width .3s; }
+.lamp-plan-next { font-family: 'Spectral', serif; font-size: 14.5px; color: var(--ink-dim); margin-bottom: 11px; }
+.lamp-plan-next b { color: var(--accent); font-weight: 600; font-style: italic; }
+.lamp-plan-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.lamp-plan-act { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; border: 1px solid var(--line); border-radius: 3px; padding: 7px 12px; cursor: pointer; background: transparent; color: var(--ink-dim); transition: all .15s; }
+.lamp-plan-act.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.lamp-plan-act.del { margin-left: auto; color: var(--ink-faint); }
+.lamp-plan-act:hover { border-color: var(--accent); color: var(--accent); }
+.lamp-plan-act.primary:hover { background: var(--gold); color: var(--bg); }
+.lamp-plan-act.del:hover { color: var(--danger); border-color: var(--danger); }
+.lamp-plans-new .lamp-st-h { margin-bottom: 11px; }
+.lamp-plans-presets { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.lamp-plan-make { display: flex; gap: 6px; }
+.lamp-plan-make .lamp-sel { font-size: 16px; padding-bottom: 2px; }
+.lamp-plan-btn { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-dim); background: transparent; border: 1px solid var(--line); border-radius: 3px; padding: 9px 14px; cursor: pointer; transition: all .15s; }
+.lamp-plan-btn:hover { border-color: var(--accent); color: var(--accent); }
+.lamp-plan-btn.gold { color: var(--gold); border-color: rgba(245,166,35,.4); }
+.lamp-plan-btn.gold:hover { background: rgba(245,166,35,.1); }
+.lamp-plan-btn:disabled { opacity: .5; cursor: default; }
+.lamp-plan-custom { display: flex; flex-direction: column; gap: 8px; }
+.lamp-plan-custom textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 3px; padding: 10px 12px; color: var(--ink); font-family: 'Spectral', serif; font-size: 14px; line-height: 1.45; resize: vertical; }
+.lamp-plan-custom textarea:focus { outline: none; border-color: var(--accent); }
+.lamp-plan-empty { font-family: 'Spectral', serif; font-style: italic; color: var(--ink-faint); font-size: 14px; margin-bottom: 4px; }
+
 /* marginalia: the lamp lights verses he's touched */
 .lamp-vnum { cursor: pointer; position: relative; }
 .lamp-vnum:hover { color: var(--gold); }
@@ -571,6 +605,7 @@ dialog::backdrop { background: rgba(8, 5, 3, 0.78); backdrop-filter: blur(4px); 
     </div>
     <div class="actions">
       <!-- SLOT:TOPBAR-ACTIONS -->
+      <button class="lamp-iconbtn" id="lamp-plans-btn" title="Planes de lectura">➤</button>
       <button class="lamp-iconbtn" id="lamp-nb-btn" title="Tu cuaderno — busca y sintetiza tus notas">❧</button>
       <button class="lamp-iconbtn" id="lamp-search-btn" title="Buscar (/)">⌕</button>
       <button class="sync-pip" id="sync-pip" title="cloud sync — click for settings"><span class="dot"></span><span id="sync-pip-label">offline</span></button>
@@ -632,6 +667,32 @@ dialog::backdrop { background: rgba(8, 5, 3, 0.78); backdrop-filter: blur(4px); 
         <button class="lamp-nb-synth" id="lamp-nb-synth" title="Que el archivista lea y sintetice tus notas (Sonnet)">✦ Sintetizar</button>
       </div>
       <div id="lamp-nb-results" class="lamp-search-results"></div>
+    </div>
+    <div id="lamp-plans" class="lamp-search-ov" hidden>
+      <div class="lamp-plans-panel">
+        <div class="lamp-plans-head">
+          <span class="lamp-plans-title">Planes de lectura</span>
+          <button class="lamp-search-x" id="lamp-plans-x" title="Cerrar (Esc)">✕</button>
+        </div>
+        <div id="lamp-plans-list" class="lamp-plans-list"></div>
+        <div class="lamp-plans-new">
+          <div class="lamp-st-h">Crear un plan</div>
+          <div class="lamp-plans-presets">
+            <div class="lamp-plan-make">
+              <select id="lamp-plan-book" class="lamp-sel" aria-label="Libro"></select>
+              <button class="lamp-plan-btn" id="lamp-plan-book-go">Estudiar este libro</button>
+            </div>
+            <div class="lamp-plan-make">
+              <button class="lamp-plan-btn" data-seq="nt">El Nuevo Testamento</button>
+              <button class="lamp-plan-btn" data-seq="all">La Biblia entera</button>
+            </div>
+          </div>
+          <div class="lamp-plan-custom">
+            <textarea id="lamp-plan-goal" rows="2" placeholder="Un objetivo — p.ej. «entender la teología paulina en 6 semanas» o «los salmos de lamento»"></textarea>
+            <button class="lamp-plan-btn gold" id="lamp-plan-custom-go">✦ Diseñar con el erudito (Sonnet)</button>
+          </div>
+        </div>
+      </div>
     </div>
     <aside id="lamp-margin" class="lamp-margin" hidden>
       <div class="lamp-margin-head">
@@ -1336,6 +1397,66 @@ const LAMP = {
     this.renderNotebook();
   },
 
+  /* ── Phase D #8: reading paths — a path, not a chain (no streaks, no dates; pause/resume guilt-free) ── */
+  openPlans() {
+    document.getElementById('lamp-plans').hidden = false;
+    const bsel = document.getElementById('lamp-plan-book');
+    if (!bsel.options.length) bsel.innerHTML = this.books.map(b => `<option value="${b.id}">${b.es}</option>`).join('');
+    this.renderPlans();
+  },
+  closePlans() { document.getElementById('lamp-plans').hidden = true; },
+  addPlan(plan) { if (!plan) return; state.plans.unshift(plan); save(); this.renderPlans(); },
+  makeBookPlan(bookId) {
+    const bk = this.byId[bookId]; if (!bk) return null;
+    const units = []; for (let c = 1; c <= bk.ch; c++) units.push({ label: `${bk.es} ${c}`, chapters: [`${bookId}.${c}`] });
+    return { id: this.uid(), name: `Estudio de ${bk.es}`, kind: 'book', units, position: 0, created: Date.now() };
+  },
+  makeSequencePlan(name, books, per) {
+    per = per || 1; const units = [];
+    books.forEach(b => { for (let c = 1; c <= b.ch; c += per) { const chs = []; for (let k = c; k < c + per && k <= b.ch; k++) chs.push(`${b.id}.${k}`); units.push({ label: chs.length > 1 ? `${b.es} ${c}–${c + chs.length - 1}` : `${b.es} ${c}`, chapters: chs }); } });
+    return { id: this.uid(), name, kind: 'sequence', units, position: 0, created: Date.now() };
+  },
+  renderPlans() {
+    const list = document.getElementById('lamp-plans-list'), esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    if (!state.plans.length) { list.innerHTML = `<div class="lamp-plan-empty">Aún no sigues ningún plan. Empieza uno abajo — es un camino, no una cadena: puedes pausarlo sin culpa.</div>`; return; }
+    list.innerHTML = state.plans.map(p => {
+      const n = p.units.length, done = Math.min(p.position, n), pct = n ? Math.round(done / n * 100) : 0, cur = p.units[p.position], completed = p.position >= n;
+      return `<div class="lamp-plan-card${completed ? ' done' : ''}">`
+        + `<div class="lamp-plan-name">${esc(p.name)}</div>`
+        + `<div class="lamp-plan-prog">${completed ? '✓ Completado' : `lectura ${done + 1} de ${n}`} · ${pct}%</div>`
+        + `<div class="lamp-plan-progbar"><i style="width:${pct}%"></i></div>`
+        + (completed ? `<div class="lamp-plan-next">Recorriste todo el camino.</div>` : `<div class="lamp-plan-next">Siguiente: <b>${esc(cur.label)}</b></div>`)
+        + `<div class="lamp-plan-acts">`
+        + (completed ? `<button class="lamp-plan-act" data-act="restart" data-id="${p.id}">Reiniciar</button>` : `<button class="lamp-plan-act primary" data-act="continue" data-id="${p.id}">Leer ahora</button><button class="lamp-plan-act" data-act="next" data-id="${p.id}">Marcar leído ✓</button>`)
+        + `<button class="lamp-plan-act del" data-act="del" data-id="${p.id}">Eliminar</button>`
+        + `</div></div>`;
+    }).join('');
+  },
+  continuePlan(id) { const p = state.plans.find(x => x.id === id); if (!p) return; const u = p.units[p.position]; if (!u) return; const a = u.chapters[0].split('.'); this.closePlans(); this.go(a[0], +a[1]); },
+  nextPlan(id) { const p = state.plans.find(x => x.id === id); if (!p) return; p.position = Math.min(p.units.length, p.position + 1); save(); this.renderPlans(); },
+  restartPlan(id) { const p = state.plans.find(x => x.id === id); if (!p) return; p.position = 0; save(); this.renderPlans(); },
+  delPlan(id) { state.plans = state.plans.filter(x => x.id !== id); save(); this.renderPlans(); },
+  async makeCustomPlan(goal) {
+    if (!goal) return;
+    if (!isClaudeEnabled()) { try { toast('Necesitas tu clave de Anthropic en Ajustes para diseñar un plan.'); } catch (e) {} return; }
+    const btn = document.getElementById('lamp-plan-custom-go'), old = btn.textContent; btn.disabled = true; btn.textContent = 'Diseñando…';
+    const system = 'Eres un guía de lectura bíblica para Leandro (protestante, 19, Georgetown). Diseñas planes de lectura con sentido temático o narrativo, realistas y abarcables. NO gamificas: es un camino, no una obligación.';
+    const userMessage = `Objetivo de Leandro: «${goal}».\nDiseña un plan de lectura de la Biblia hacia ese objetivo. Devuelve SOLO JSON válido:\n{"name":"nombre corto del plan","units":[{"label":"etiqueta legible (p.ej. 'Romanos 1–4' o 'Salmo 22; Mateo 27')","chapters":[{"book":"<nombre del libro en español>","ch":<número>}]}]}\nEntre 6 y 24 unidades, cada una abarcable en una sentada, ordenadas con sentido pedagógico. Solo libros y capítulos que existen. Nada de texto fuera del JSON.`;
+    try {
+      const out = await callClaude({ system, userMessage, maxTokens: 2000, model: this.MODEL_CHAPTER });
+      const m = out.match(/\{[\s\S]*\}/); if (!m) throw new Error('formato');
+      const obj = JSON.parse(m[0]);
+      const units = (obj.units || []).map(u => {
+        const chs = (u.chapters || []).map(c => { const bk = this.matchBook(c.book || ''), ch = +c.ch; return (bk && ch >= 1 && ch <= bk.ch) ? `${bk.id}.${ch}` : null; }).filter(Boolean);
+        return chs.length ? { label: String(u.label || chs[0]).slice(0, 60), chapters: chs } : null;
+      }).filter(Boolean);
+      if (!units.length) throw new Error('sin lecturas válidas');
+      this.addPlan({ id: this.uid(), name: String(obj.name || goal).slice(0, 80), kind: 'custom', units, position: 0, created: Date.now() });
+      document.getElementById('lamp-plan-goal').value = '';
+    } catch (e) { try { toast('No se pudo diseñar el plan: ' + e.message); } catch (x) {} }
+    btn.disabled = false; btn.textContent = old;
+  },
+
   async boot() {
     document.querySelector('.brand h1').textContent = APP.name;
     try {
@@ -1390,14 +1511,23 @@ const LAMP = {
     document.getElementById('lamp-nb-synth').addEventListener('click', () => this.synthesize());
     document.getElementById('lamp-nb-results').addEventListener('click', e => { const n = e.target.closest('.lamp-nb-note'); if (n) { const p = n.dataset.ref.split('.'); this.closeNotebook(); this.go(p[0], +p[1], true, +p[2]); } });
     document.getElementById('lamp-notebook').addEventListener('click', e => { if (e.target.id === 'lamp-notebook') this.closeNotebook(); });
+    // reading plans (Phase D #8)
+    document.getElementById('lamp-plans-btn').addEventListener('click', () => this.openPlans());
+    document.getElementById('lamp-plans-x').addEventListener('click', () => this.closePlans());
+    document.getElementById('lamp-plans').addEventListener('click', e => { if (e.target.id === 'lamp-plans') this.closePlans(); });
+    document.getElementById('lamp-plan-book-go').addEventListener('click', () => this.addPlan(this.makeBookPlan(document.getElementById('lamp-plan-book').value)));
+    document.querySelectorAll('#lamp-plans [data-seq]').forEach(b => b.addEventListener('click', () => { if (b.dataset.seq === 'nt') this.addPlan(this.makeSequencePlan('El Nuevo Testamento', this.books.filter(x => x.nr >= 40), 1)); else this.addPlan(this.makeSequencePlan('La Biblia entera', this.books, 1)); }));
+    document.getElementById('lamp-plan-custom-go').addEventListener('click', () => this.makeCustomPlan(document.getElementById('lamp-plan-goal').value.trim()));
+    document.getElementById('lamp-plans-list').addEventListener('click', e => { const b = e.target.closest('.lamp-plan-act'); if (!b) return; const id = b.dataset.id; ({ continue: () => this.continuePlan(id), next: () => this.nextPlan(id), restart: () => this.restartPlan(id), del: () => this.delPlan(id) }[b.dataset.act] || (() => {}))(); });
     document.addEventListener('keydown', e => {
       const t = e.target.tagName, typing = (t === 'SELECT' || t === 'INPUT' || t === 'TEXTAREA');
-      const searchOpen = !document.getElementById('lamp-search').hidden, marginOpen = !document.getElementById('lamp-margin').hidden, chapterOpen = !document.getElementById('lamp-chapter').hidden, nbOpen = !document.getElementById('lamp-notebook').hidden;
+      const searchOpen = !document.getElementById('lamp-search').hidden, marginOpen = !document.getElementById('lamp-margin').hidden, chapterOpen = !document.getElementById('lamp-chapter').hidden, nbOpen = !document.getElementById('lamp-notebook').hidden, plansOpen = !document.getElementById('lamp-plans').hidden;
+      if (e.key === 'Escape' && plansOpen) { this.closePlans(); return; }
       if (e.key === 'Escape' && nbOpen) { this.closeNotebook(); return; }
       if (e.key === 'Escape' && chapterOpen) { this.closeChapterStudy(); return; }
       if (e.key === 'Escape' && marginOpen) { this.closeMargin(); return; }
-      if (e.key === '/' && !typing && !searchOpen && !marginOpen && !chapterOpen && !nbOpen) { e.preventDefault(); this.openSearch(); return; }
-      if (typing || searchOpen || chapterOpen || nbOpen) return;
+      if (e.key === '/' && !typing && !searchOpen && !marginOpen && !chapterOpen && !nbOpen && !plansOpen) { e.preventDefault(); this.openSearch(); return; }
+      if (typing || searchOpen || chapterOpen || nbOpen || plansOpen) return;
       if (e.key === 'ArrowLeft') this.step(-1); else if (e.key === 'ArrowRight') this.step(1);
     });
     this.syncSrcButtons();
