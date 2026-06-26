@@ -937,9 +937,17 @@ const LAMP = {
   uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); },
   refLabel(ref) { const p = ref.split('.'); return `${this.byId[p[0]].es} ${p[1]}:${p[2]}`; },
   verseText(ref) {
-    const p = ref.split('.'), rv = this.text.rv1909, bsb = this.text.bsb;
-    const dig = (t) => (t && t[p[0]] && t[p[0]][p[1]] && t[p[0]][p[1]][p[2]]) || '';
-    return { es: dig(rv), en: dig(bsb) };
+    const p = ref.split('.');
+    // prefer the verse AS RENDERED (so the margin matches the reader's Spanish source — NTV or RV1909)
+    if (this.cur && this.cur.bookId === p[0] && String(this.cur.ch) === p[1]) {
+      const row = document.querySelector(`#lamp-read .lamp-vrow[data-v="${p[2]}"]`);
+      if (row) {
+        const grab = sel => { const el = row.querySelector(sel); const t = el ? el.textContent.trim() : ''; return t === '—' ? '' : t; };
+        return { es: grab('.lamp-vtext.es'), en: grab('.lamp-vtext.en') };
+      }
+    }
+    const dig = (t) => (t && t[p[0]] && t[p[0]][p[1]] && t[p[0]][p[1]][p[2]]) || '';   // fallback: the PD bundle (cross-chapter refs)
+    return { es: dig(this.text.rv1909), en: dig(this.text.bsb) };
   },
   fmtDate(ts) { try { return new Date(ts).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return ''; } },
   openMargin(ref) {
