@@ -1140,12 +1140,20 @@ const LAMP = {
 
   /* ── Chapter study (Sonnet): whole chapter through the four lenses + key verses + a question. Cached, regenerable. ── */
   studyCacheKey(bookId, ch) { return `lampara.study.v1.${bookId}.${ch}`; },
+  chapterNotes(bookId, ch) {                              // his layer for this chapter, ordered by verse
+    const base = bookId + '.' + ch + '.';
+    return state.notes.filter(n => n.ref.indexOf(base) === 0).sort((a, b) => (+a.ref.split('.')[2]) - (+b.ref.split('.')[2]));
+  },
+  chapterNotesSig(bookId, ch) {                           // changes when he annotates → invalidates a cached study
+    return this.chapterNotes(bookId, ch).map(n => n.id + ':' + (n.updated || 0)).join('|') || '0';
+  },
   openChapterStudy() {
     const { bookId, ch } = this.cur;
     document.getElementById('lamp-chapter').hidden = false;
     document.getElementById('lamp-chapter-ref').textContent = `${this.byId[bookId].es} ${ch} · Estudio`;
     let cached = null; try { cached = JSON.parse(localStorage.getItem(this.studyCacheKey(bookId, ch)) || 'null'); } catch (e) {}
-    if (cached) this.renderChapterStudy(cached, bookId, ch); else this.fetchChapterStudy();
+    if (cached && cached._sig === this.chapterNotesSig(bookId, ch)) this.renderChapterStudy(cached, bookId, ch);
+    else this.fetchChapterStudy();                        // no cache, or his annotations changed → regenerate
   },
   closeChapterStudy() { document.getElementById('lamp-chapter').hidden = true; },
   async fetchChapterStudy() {
@@ -1158,20 +1166,24 @@ const LAMP = {
     await this.ensureText('rv1909');
     const chap = (this.text.rv1909[bookId] && this.text.rv1909[bookId][ch]) || {};
     const lines = Object.keys(chap).map(Number).sort((a, b) => a - b).map(v => `${v} ${chap[v]}`).join('\n');
+    const notes = this.chapterNotes(bookId, ch), sig = this.chapterNotesSig(bookId, ch);
+    const annot = notes.map(n => { const v = n.ref.split('.')[2], prior = (n.body || '').startsWith('✦ Del erudito'); const kl = prior ? 'diálogo previo' : ({ note: 'nota', question: 'PREGUNTA', prayer: 'oración', highlight: 'destacado' }[n.kind] || 'nota'); return `v${v} [${kl}]: ${(n.body || '(destacado)').replace(/\s+/g, ' ').slice(0, 320)}`; }).join('\n');
     const userMessage = `Estudia el capítulo ENTERO: ${this.byId[bookId].es} ${ch}.\nTexto (Reina-Valera 1909):\n${lines}\n\n`
+      + (annot ? `EL LECTOR YA ANOTÓ ESTE CAPÍTULO (sus notas, preguntas y diálogos previos contigo). RESPONDE directamente a sus PREGUNTAS y dialoga con sus notas; retoma lo conversado. Sé honesto y erudito, no lo halagues:\n${annot}\n\n` : '')
       + `Devuelve SOLO JSON válido (sin markdown, sin texto fuera del objeto) con esta forma exacta:\n`
-      + `{"panorama":"2-4 frases: de qué trata el capítulo y su movimiento/estructura literaria",`
+      + `{"panorama":"2-4 frases: de qué trata el capítulo y su estructura literaria",`
+      + `"dialogo":${annot ? `"responde a SUS preguntas y dialoga con sus notas citando el versículo (v3, v5…), retomando lo conversado antes"` : `""`},`
       + `"contexto":"contexto histórico y cultural del capítulo",`
       + `"lengua":"2-4 términos clave del idioma original (hebreo/griego): transliteración y matiz",`
       + `"tradiciones":"cómo lo leen las tradiciones —católica, ortodoxa, reformada, crítica— atribuido por nombre donde puedas",`
       + `"claves":[{"v":<número de versículo>,"porque":"por qué es especialmente significativo"}],`
       + `"aplicacion":"aplicación a la vida de Leandro (19, Georgetown, camino a Bain) como posibilidades y preguntas, no veredictos",`
       + `"pregunta":"una sola pregunta para meditar"}\n`
-      + `"claves": elige de 3 a 5 versículos. Recuerda el límite: informas y preguntas, no hablas por Dios ni dictas veredictos; no inventes datos. Las cadenas pueden usar markdown ligero (**negritas**, _itálica_).`;
+      + `"claves": elige de 3 a 5 versículos. ${annot ? 'Si un versículo que él anotó es relevante, inclúyelo entre las claves. ' : ''}Recuerda el límite: informas y preguntas, no hablas por Dios ni dictas veredictos; no inventes datos. Markdown ligero (**negritas**, _itálica_) permitido en las cadenas.`;
     try {
-      const out = await callClaude({ system: this.buildScholarSystem(), userMessage, maxTokens: 2600, model: this.MODEL_CHAPTER });
+      const out = await callClaude({ system: this.buildScholarSystem(), userMessage, maxTokens: 2800, model: this.MODEL_CHAPTER });
       const m = out.match(/\{[\s\S]*\}/); if (!m) throw new Error('formato inesperado');
-      const obj = JSON.parse(m[0]);
+      const obj = JSON.parse(m[0]); obj._sig = sig;
       try { localStorage.setItem(this.studyCacheKey(bookId, ch), JSON.stringify(obj)); } catch (e) {}
       if (this.cur.bookId === bookId && this.cur.ch === ch && !document.getElementById('lamp-chapter').hidden) this.renderChapterStudy(obj, bookId, ch);
     } catch (e) {
@@ -1182,7 +1194,7 @@ const LAMP = {
   renderChapterStudy(d, bookId, ch) {
     const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
     const sec = (label, txt) => txt ? `<div class="lamp-st-sec"><div class="lamp-st-h">${label}</div><div class="lamp-st-body">${this.mdLite(txt)}</div></div>` : '';
-    let H = sec('Panorama', d.panorama) + sec('Contexto', d.contexto) + sec('Lengua original', d.lengua) + sec('Tradiciones', d.tradiciones);
+    let H = sec('Panorama', d.panorama) + sec('En diálogo contigo', d.dialogo) + sec('Contexto', d.contexto) + sec('Lengua original', d.lengua) + sec('Tradiciones', d.tradiciones);
     if (Array.isArray(d.claves) && d.claves.length) {
       H += `<div class="lamp-st-sec"><div class="lamp-st-h">Versículos clave</div><div class="lamp-st-claves">`
         + d.claves.filter(k => k && k.v).map(k => `<button class="lamp-clave" data-v="${esc(String(k.v))}"><span class="lamp-clave-ref">${esc(this.byId[bookId].es)} ${ch}:${esc(String(k.v))}</span>${esc(k.porque || '')}</button>`).join('')
