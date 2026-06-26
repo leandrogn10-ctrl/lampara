@@ -458,6 +458,28 @@ dialog::backdrop { background: rgba(8, 5, 3, 0.78); backdrop-filter: blur(4px); 
 .lamp-ssnip mark { background: rgba(245,166,35,0.22); color: var(--ink); padding: 0 1px; }
 .lamp-shint { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-faint); padding: 14px 10px; }
 
+/* notebook (Phase D #6): search + synthesize his own corpus */
+.lamp-nb-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: min(680px, 94vw); margin-top: 10px; flex-wrap: wrap; }
+.lamp-nb-filters { display: flex; gap: 4px; flex-wrap: wrap; }
+.lamp-nbf { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); background: transparent; border: 1px solid var(--line); border-radius: 13px; padding: 5px 11px; cursor: pointer; transition: all .15s; }
+.lamp-nbf.on { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+.lamp-nbf:not(.on):hover { color: var(--accent); }
+.lamp-nb-synth { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--gold); background: rgba(245,166,35,0.06); border: 1px solid rgba(245,166,35,0.4); border-radius: 13px; padding: 6px 14px; cursor: pointer; }
+.lamp-nb-synth:hover { background: rgba(245,166,35,0.14); }
+.lamp-nb-synth:disabled { opacity: .5; cursor: default; }
+.lamp-nb-note { display: block; width: 100%; text-align: left; background: transparent; border: none; border-bottom: 1px solid var(--line-soft); padding: 11px 10px; cursor: pointer; }
+.lamp-nb-note:hover { background: var(--bg-elev); }
+.lamp-nb-meta { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: 3px; }
+.lamp-nb-meta .k { color: var(--ink-faint); margin-left: 8px; }
+.lamp-nb-text { font-family: 'Spectral', serif; font-size: 15px; line-height: 1.45; color: var(--ink-dim); }
+.lamp-nb-text mark { background: rgba(245,166,35,0.22); color: var(--ink); }
+.lamp-nb-synthcard { background: var(--bg-elev); border: 1px solid rgba(245,166,35,0.3); border-radius: 5px; padding: 16px 18px; margin-bottom: 14px; }
+.lamp-nb-synthcard .lamp-st-h { color: var(--gold); }
+.lamp-nb-synthbody { font-family: 'Spectral', serif; font-size: 15.5px; line-height: 1.62; color: var(--ink); }
+.lamp-nb-synthbody strong { color: var(--gold); } .lamp-nb-synthbody em { font-style: italic; color: var(--ink); } .lamp-nb-synthbody code { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--accent); }
+.lamp-nb-synthbody h3 { font-family: 'Cormorant', serif; font-style: italic; font-size: 18px; color: var(--ink); margin: 10px 0 3px; }
+.lamp-nb-synthbody p { margin: 7px 0; } .lamp-nb-synthbody ul { margin: 6px 0; padding-left: 18px; }
+
 /* marginalia: the lamp lights verses he's touched */
 .lamp-vnum { cursor: pointer; position: relative; }
 .lamp-vnum:hover { color: var(--gold); }
@@ -549,6 +571,7 @@ dialog::backdrop { background: rgba(8, 5, 3, 0.78); backdrop-filter: blur(4px); 
     </div>
     <div class="actions">
       <!-- SLOT:TOPBAR-ACTIONS -->
+      <button class="lamp-iconbtn" id="lamp-nb-btn" title="Tu cuaderno — busca y sintetiza tus notas">❧</button>
       <button class="lamp-iconbtn" id="lamp-search-btn" title="Buscar (/)">⌕</button>
       <button class="sync-pip" id="sync-pip" title="cloud sync — click for settings"><span class="dot"></span><span id="sync-pip-label">offline</span></button>
     </div>
@@ -591,6 +614,24 @@ dialog::backdrop { background: rgba(8, 5, 3, 0.78); backdrop-filter: blur(4px); 
         <button class="lamp-search-x" id="lamp-search-x" title="Cerrar (Esc)">✕</button>
       </div>
       <div id="lamp-search-results" class="lamp-search-results"></div>
+    </div>
+    <div id="lamp-notebook" class="lamp-search-ov" hidden>
+      <div class="lamp-search-box">
+        <input id="lamp-nb-in" class="lamp-search-in" type="text" autocomplete="off" spellcheck="false"
+               placeholder="Busca en tus notas, o pregunta «¿qué he escrito sobre la gracia?»">
+        <button class="lamp-search-x" id="lamp-nb-x" title="Cerrar (Esc)">✕</button>
+      </div>
+      <div class="lamp-nb-bar">
+        <div class="lamp-nb-filters" id="lamp-nb-filters">
+          <button class="lamp-nbf on" data-kind="all">Todas</button>
+          <button class="lamp-nbf" data-kind="note">Notas</button>
+          <button class="lamp-nbf" data-kind="question">Preguntas</button>
+          <button class="lamp-nbf" data-kind="prayer">Oraciones</button>
+          <button class="lamp-nbf" data-kind="highlight">Destacados</button>
+        </div>
+        <button class="lamp-nb-synth" id="lamp-nb-synth" title="Que el archivista lea y sintetice tus notas (Sonnet)">✦ Sintetizar</button>
+      </div>
+      <div id="lamp-nb-results" class="lamp-search-results"></div>
     </div>
     <aside id="lamp-margin" class="lamp-margin" hidden>
       <div class="lamp-margin-head">
@@ -1084,6 +1125,7 @@ const LAMP = {
   },
   mdLite(t) {
     let s = String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    s = s.replace(/^\s*-{3,}\s*$/gm, '');                 // markdown horizontal rules → drop (they read as literal "---")
     s = s.replace(/^#{1,4}\s+(.+)$/gm, '<h3>$1</h3>');
     s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/(^|[^*])\*(?!\s)([^*]+?)\*(?!\*)/g, '$1<em>$2</em>').replace(/_(.+?)_/g, '<em>$1</em>').replace(/`([^`]+)`/g, '<code>$1</code>');
     s = s.replace(/(?:^|\n)((?:\s*[-•]\s+.+(?:\n|$))+)/g, m => '<ul>' + m.trim().split('\n').map(l => '<li>' + l.replace(/^\s*[-•]\s+/, '') + '</li>').join('') + '</ul>');
@@ -1231,6 +1273,69 @@ const LAMP = {
     const body = document.getElementById('lamp-chapter-body'); body.innerHTML = H; body.scrollTop = 0;
   },
 
+  /* ── Phase D #6: the notebook — search + synthesize his OWN corpus (the archivist reads HIM, not Scripture) ── */
+  MODEL_SYNTH: 'claude-sonnet-4-6',
+  nb: { kind: 'all', synth: null },
+  hlWords(t, words) {
+    const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const AC = { a: 'aáàäâ', e: 'eéèëê', i: 'iíìïî', o: 'oóòöô', u: 'uúùüû', n: 'nñ', c: 'cç' };
+    const alt = (words || []).map(w => w.split('').map(ch => AC[ch] ? '[' + AC[ch] + ']' : ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('')).filter(Boolean);
+    if (!alt.length) return esc(t);
+    return esc(t).replace(new RegExp('(' + alt.join('|') + ')', 'gi'), '<mark>$1</mark>');
+  },
+  openNotebook() {
+    document.getElementById('lamp-notebook').hidden = false;
+    const inp = document.getElementById('lamp-nb-in'); inp.focus(); inp.select();
+    this.renderNotebook();
+  },
+  closeNotebook() { document.getElementById('lamp-notebook').hidden = true; },
+  nbFilter(kind) { this.nb.kind = kind; document.querySelectorAll('#lamp-nb-filters .lamp-nbf').forEach(b => b.classList.toggle('on', b.dataset.kind === kind)); this.renderNotebook(); },
+  nbMatches(q) {
+    const nq = this.norm(q).split(/\s+/).filter(Boolean);
+    return state.notes.filter(n => {
+      if (this.nb.kind !== 'all' && n.kind !== this.nb.kind) return false;
+      if (!nq.length) return true;
+      const hay = this.norm((n.body || '') + ' ' + this.refLabel(n.ref));
+      return nq.every(w => hay.includes(w));
+    }).sort((a, b) => (b.updated || 0) - (a.updated || 0));
+  },
+  renderNotebook() {
+    const box = document.getElementById('lamp-nb-results'), q = document.getElementById('lamp-nb-in').value.trim();
+    const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const KIND = { note: 'Nota', question: 'Pregunta', prayer: 'Oración', highlight: 'Destacado' };
+    let H = '';
+    if (this.nb.synth) H += `<div class="lamp-nb-synthcard"><div class="lamp-st-h">El archivista, sobre lo que has escrito</div><div class="lamp-nb-synthbody">${this.nb.synth === 'pending' ? '<span class="lamp-sch-pending">Leyendo tus notas…</span>' : this.mdLite(this.nb.synth)}</div></div>`;
+    if (!state.notes.length) { box.innerHTML = H + `<div class="lamp-shint">Tu cuaderno está vacío. Toca el número de un versículo para escribir la primera nota.</div>`; return; }
+    const notes = this.nbMatches(q);
+    if (!notes.length) { box.innerHTML = H + `<div class="lamp-shint">Ninguna nota coincide.</div>`; return; }
+    const words = q ? this.norm(q).split(/\s+/).filter(Boolean) : [];
+    H += notes.map(n => `<button class="lamp-nb-note" data-ref="${esc(n.ref)}"><div class="lamp-nb-meta">${esc(this.refLabel(n.ref))}<span class="k">${KIND[n.kind] || 'Nota'}</span></div><div class="lamp-nb-text">${n.body ? this.hlWords(n.body, words) : '<em>(destacado)</em>'}</div></button>`).join('');
+    box.innerHTML = H;
+  },
+  relevantNotesFor(query, budget) {
+    const nq = this.norm(query).split(/\s+/).filter(w => w.length >= 4);
+    let pool;
+    if (nq.length) {
+      pool = state.notes.map(n => { const hay = this.norm(n.body || ''); let s = 0; nq.forEach(w => { if (hay.includes(w)) s++; }); return { n, s }; }).filter(x => x.s > 0).sort((a, b) => b.s - a.s).map(x => x.n);
+      if (!pool.length) pool = state.notes.slice().sort((a, b) => (b.updated || 0) - (a.updated || 0));
+    } else pool = state.notes.slice().sort((a, b) => (b.updated || 0) - (a.updated || 0));
+    const lines = []; let bud = budget || 7000;
+    for (const n of pool) { const line = this._noteLine(n); if (bud - line.length < 0) break; bud -= line.length; lines.push(line); }
+    return lines.join('\n');
+  },
+  async synthesize() {
+    const q = document.getElementById('lamp-nb-in').value.trim();
+    if (!isClaudeEnabled()) { this.nb.synth = 'Necesitas tu clave de Anthropic en **Ajustes** para que el archivista lea tus notas.'; this.renderNotebook(); return; }
+    if (!state.notes.length) return;
+    const digest = this.relevantNotesFor(q, 7000);
+    this.nb.synth = 'pending'; this.renderNotebook();
+    const system = 'Eres el archivista de La Lámpara. Tu tarea NO es interpretar la Biblia, sino LEER a Leandro: sintetizar lo que ÉL ha escrito en sus propias notas marginales. Reporta SUS ideas, su evolución, sus tensiones y preguntas abiertas —citando sus referencias (libro cap:vers)—. No inventes nada que sus notas no digan; si no hay material, dilo con honestidad. No prediques ni des veredictos: lo estás reflejando a él.';
+    const userMessage = (q ? `Pregunta de Leandro sobre su propio pensamiento: «${q}».\n\n` : `Haz una síntesis de los temas de sus notas.\n\n`) + `Sus notas:\n${digest}\n\nSintetiza lo que ÉL ha pensado, citando sus referencias. Señala patrones, tensiones y preguntas abiertas. Español, markdown ligero (### / ** / -).`;
+    try { this.nb.synth = await callClaude({ system, userMessage, maxTokens: 1400, model: this.MODEL_SYNTH }); }
+    catch (e) { this.nb.synth = '⚠ No se pudo sintetizar: ' + e.message; }
+    this.renderNotebook();
+  },
+
   async boot() {
     document.querySelector('.brand h1').textContent = APP.name;
     try {
@@ -1277,13 +1382,22 @@ const LAMP = {
     document.getElementById('lamp-chapter-x').addEventListener('click', () => this.closeChapterStudy());
     document.getElementById('lamp-chapter-refresh').addEventListener('click', () => { try { localStorage.removeItem(this.studyCacheKey(this.cur.bookId, this.cur.ch)); } catch (e) {} this.fetchChapterStudy(); });
     document.getElementById('lamp-chapter-body').addEventListener('click', e => { const c = e.target.closest('.lamp-clave'); if (c) { const v = +c.dataset.v; this.closeChapterStudy(); this.go(this.cur.bookId, this.cur.ch, true, v); } });
+    // notebook (Phase D #6)
+    document.getElementById('lamp-nb-btn').addEventListener('click', () => this.openNotebook());
+    document.getElementById('lamp-nb-x').addEventListener('click', () => this.closeNotebook());
+    document.getElementById('lamp-nb-in').addEventListener('input', () => { this.nb.synth = null; this.renderNotebook(); });
+    document.getElementById('lamp-nb-filters').addEventListener('click', e => { const b = e.target.closest('.lamp-nbf'); if (b) this.nbFilter(b.dataset.kind); });
+    document.getElementById('lamp-nb-synth').addEventListener('click', () => this.synthesize());
+    document.getElementById('lamp-nb-results').addEventListener('click', e => { const n = e.target.closest('.lamp-nb-note'); if (n) { const p = n.dataset.ref.split('.'); this.closeNotebook(); this.go(p[0], +p[1], true, +p[2]); } });
+    document.getElementById('lamp-notebook').addEventListener('click', e => { if (e.target.id === 'lamp-notebook') this.closeNotebook(); });
     document.addEventListener('keydown', e => {
       const t = e.target.tagName, typing = (t === 'SELECT' || t === 'INPUT' || t === 'TEXTAREA');
-      const searchOpen = !document.getElementById('lamp-search').hidden, marginOpen = !document.getElementById('lamp-margin').hidden, chapterOpen = !document.getElementById('lamp-chapter').hidden;
+      const searchOpen = !document.getElementById('lamp-search').hidden, marginOpen = !document.getElementById('lamp-margin').hidden, chapterOpen = !document.getElementById('lamp-chapter').hidden, nbOpen = !document.getElementById('lamp-notebook').hidden;
+      if (e.key === 'Escape' && nbOpen) { this.closeNotebook(); return; }
       if (e.key === 'Escape' && chapterOpen) { this.closeChapterStudy(); return; }
       if (e.key === 'Escape' && marginOpen) { this.closeMargin(); return; }
-      if (e.key === '/' && !typing && !searchOpen && !marginOpen && !chapterOpen) { e.preventDefault(); this.openSearch(); return; }
-      if (typing || searchOpen || chapterOpen) return;
+      if (e.key === '/' && !typing && !searchOpen && !marginOpen && !chapterOpen && !nbOpen) { e.preventDefault(); this.openSearch(); return; }
+      if (typing || searchOpen || chapterOpen || nbOpen) return;
       if (e.key === 'ArrowLeft') this.step(-1); else if (e.key === 'ArrowRight') this.step(1);
     });
     this.syncSrcButtons();
