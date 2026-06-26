@@ -1300,6 +1300,7 @@ const LAMP = {
   },
   openChapterStudy() {
     const { bookId, ch } = this.cur;
+    this.logRead(bookId, ch);                             // a chapter study counts as reading today → the city marks the Bible habit
     document.getElementById('lamp-chapter').hidden = false;
     document.getElementById('lamp-chapter-ref').textContent = `${this.byId[bookId].es} ${ch} · Estudio`;
     let cached = null; try { cached = JSON.parse(localStorage.getItem(this.studyCacheKey(bookId, ch)) || 'null'); } catch (e) {}
