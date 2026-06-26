@@ -1144,8 +1144,35 @@ const LAMP = {
     const base = bookId + '.' + ch + '.';
     return state.notes.filter(n => n.ref.indexOf(base) === 0).sort((a, b) => (+a.ref.split('.')[2]) - (+b.ref.split('.')[2]));
   },
-  chapterNotesSig(bookId, ch) {                           // changes when he annotates → invalidates a cached study
-    return this.chapterNotes(bookId, ch).map(n => n.id + ':' + (n.updated || 0)).join('|') || '0';
+  corpusSig() { let mx = 0; for (const n of state.notes) mx = Math.max(mx, n.updated || 0); return state.notes.length + ':' + mx; },
+  chapterNotesSig(bookId, ch) {                           // reflects this chapter's notes AND the whole corpus (cross-chapter context feeds the study) → annotating anywhere can refresh it
+    const here = this.chapterNotes(bookId, ch).map(n => n.id + ':' + (n.updated || 0)).join('|') || '0';
+    return here + '#' + this.corpusSig();
+  },
+  _noteLine(n) {
+    const p = n.ref.split('.'), prior = (n.body || '').startsWith('✦ Del erudito');
+    const kl = prior ? 'diálogo previo' : ({ note: 'nota', question: 'PREGUNTA', prayer: 'oración', highlight: 'destacado' }[n.kind] || 'nota');
+    return `${this.byId[p[0]].es} ${p[1]}:${p[2]} [${kl}]: ${(n.body || '(destacado)').replace(/\s+/g, ' ').slice(0, 320)}`;
+  },
+  buildCorpusContext(bookId, ch) {                        // current-chapter notes (full) + the most RELEVANT cross-chapter notes (term overlap + recency), within a budget
+    const base = bookId + '.' + ch + '.';
+    const current = this.chapterNotes(bookId, ch);
+    const others = state.notes.filter(n => n.ref.indexOf(base) !== 0);
+    const chap = (this.text.rv1909[bookId] && this.text.rv1909[bookId][ch]) || {};
+    const terms = new Set();
+    Object.values(chap).forEach(t => this.norm(t).split(/\s+/).forEach(w => { if (w.length >= 5) terms.add(w); }));
+    const recRank = {}; others.slice().sort((a, b) => (b.updated || 0) - (a.updated || 0)).forEach((n, i) => recRank[n.id] = i);
+    const scored = others.map(n => {
+      const seen = new Set(); let overlap = 0;
+      this.norm(n.body || '').split(/\s+/).forEach(w => { if (w.length >= 5 && terms.has(w) && !seen.has(w)) { seen.add(w); overlap++; } });
+      return { n, score: overlap * 3 - (recRank[n.id] || 0) * 0.1 };
+    }).sort((a, b) => b.score - a.score);
+    let budget = 5000; const otherLines = [];
+    for (const s of scored) { const line = this._noteLine(s.n); if (budget - line.length < 0) break; budget -= line.length; otherLines.push(line); }
+    let text = '';
+    if (current.length) text += 'ESTE CAPÍTULO (sus notas y preguntas — respóndelas y dialoga con ellas):\n' + current.map(n => this._noteLine(n)).join('\n') + '\n';
+    if (otherLines.length) text += '\nDE OTROS PASAJES QUE HA ANOTADO (su pensamiento a través de la Biblia — retoma y CONECTA lo pertinente):\n' + otherLines.join('\n') + '\n';
+    return { text, hasCurrent: current.length > 0, hasAny: current.length > 0 || otherLines.length > 0 };
   },
   openChapterStudy() {
     const { bookId, ch } = this.cur;
@@ -1166,20 +1193,19 @@ const LAMP = {
     await this.ensureText('rv1909');
     const chap = (this.text.rv1909[bookId] && this.text.rv1909[bookId][ch]) || {};
     const lines = Object.keys(chap).map(Number).sort((a, b) => a - b).map(v => `${v} ${chap[v]}`).join('\n');
-    const notes = this.chapterNotes(bookId, ch), sig = this.chapterNotesSig(bookId, ch);
-    const annot = notes.map(n => { const v = n.ref.split('.')[2], prior = (n.body || '').startsWith('✦ Del erudito'); const kl = prior ? 'diálogo previo' : ({ note: 'nota', question: 'PREGUNTA', prayer: 'oración', highlight: 'destacado' }[n.kind] || 'nota'); return `v${v} [${kl}]: ${(n.body || '(destacado)').replace(/\s+/g, ' ').slice(0, 320)}`; }).join('\n');
+    const ctx = this.buildCorpusContext(bookId, ch), sig = this.chapterNotesSig(bookId, ch);
     const userMessage = `Estudia el capítulo ENTERO: ${this.byId[bookId].es} ${ch}.\nTexto (Reina-Valera 1909):\n${lines}\n\n`
-      + (annot ? `EL LECTOR YA ANOTÓ ESTE CAPÍTULO (sus notas, preguntas y diálogos previos contigo). RESPONDE directamente a sus PREGUNTAS y dialoga con sus notas; retoma lo conversado. Sé honesto y erudito, no lo halagues:\n${annot}\n\n` : '')
+      + (ctx.hasAny ? `EL LECTOR HA IDO ANOTANDO LA BIBLIA (su pensamiento a lo largo del tiempo, a través de varios pasajes). RESPONDE directamente a sus PREGUNTAS, dialoga con sus notas, y CONECTA con lo que ha reflexionado en OTROS pasajes cuando sea pertinente —teje los hilos. Sé honesto y erudito, no lo halagues:\n${ctx.text}\n\n` : '')
       + `Devuelve SOLO JSON válido (sin markdown, sin texto fuera del objeto) con esta forma exacta:\n`
       + `{"panorama":"2-4 frases: de qué trata el capítulo y su estructura literaria",`
-      + `"dialogo":${annot ? `"responde a SUS preguntas y dialoga con sus notas citando el versículo (v3, v5…), retomando lo conversado antes"` : `""`},`
+      + `"dialogo":${ctx.hasAny ? `"responde a SUS preguntas y dialoga con sus notas citando el versículo (v3, v5…); CONECTA con lo que anotó en otros pasajes cuando aplique, nombrando esa referencia"` : `""`},`
       + `"contexto":"contexto histórico y cultural del capítulo",`
       + `"lengua":"2-4 términos clave del idioma original (hebreo/griego): transliteración y matiz",`
       + `"tradiciones":"cómo lo leen las tradiciones —católica, ortodoxa, reformada, crítica— atribuido por nombre donde puedas",`
       + `"claves":[{"v":<número de versículo>,"porque":"por qué es especialmente significativo"}],`
       + `"aplicacion":"aplicación a la vida de Leandro (19, Georgetown, camino a Bain) como posibilidades y preguntas, no veredictos",`
       + `"pregunta":"una sola pregunta para meditar"}\n`
-      + `"claves": elige de 3 a 5 versículos. ${annot ? 'Si un versículo que él anotó es relevante, inclúyelo entre las claves. ' : ''}Recuerda el límite: informas y preguntas, no hablas por Dios ni dictas veredictos; no inventes datos. Markdown ligero (**negritas**, _itálica_) permitido en las cadenas.`;
+      + `"claves": elige de 3 a 5 versículos. ${ctx.hasCurrent ? 'Si un versículo que él anotó en este capítulo es relevante, inclúyelo entre las claves. ' : ''}Recuerda el límite: informas y preguntas, no hablas por Dios ni dictas veredictos; no inventes datos. Markdown ligero (**negritas**, _itálica_) permitido en las cadenas.`;
     try {
       const out = await callClaude({ system: this.buildScholarSystem(), userMessage, maxTokens: 2800, model: this.MODEL_CHAPTER });
       const m = out.match(/\{[\s\S]*\}/); if (!m) throw new Error('formato inesperado');
