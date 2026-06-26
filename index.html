@@ -481,6 +481,34 @@ dialog::backdrop { background: rgba(8, 5, 3, 0.78); backdrop-filter: blur(4px); 
 .lamp-note:hover .lamp-note-del { opacity: 1; }
 .lamp-note-del:hover { color: var(--danger); }
 .lamp-margin-empty { font-family: 'Spectral', serif; font-style: italic; font-size: 14px; color: var(--ink-faint); margin-bottom: 16px; }
+.lamp-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+.lamp-tab { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); background: transparent; border: none; border-bottom: 2px solid transparent; padding: 8px 12px; cursor: pointer; margin-bottom: -1px; }
+.lamp-tab.on { color: var(--accent); border-bottom-color: var(--accent); }
+.lamp-tab:not(.on):hover { color: var(--ink-dim); }
+.lamp-tabpane { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.lamp-tabpane[hidden] { display: none; }
+
+.lamp-lenses { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+.lamp-lens { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-dim); background: transparent; border: 1px solid var(--line); border-radius: 14px; padding: 6px 12px; cursor: pointer; transition: all .15s; }
+.lamp-lens:hover { color: var(--accent); border-color: var(--accent); }
+.lamp-lens:disabled { opacity: .4; cursor: default; }
+.lamp-scholar-thread { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding-bottom: 8px; }
+.lamp-sch-q { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .04em; color: var(--accent); text-transform: uppercase; }
+.lamp-sch-a { font-family: 'Spectral', serif; font-size: 15px; line-height: 1.62; color: var(--ink-dim); }
+.lamp-sch-a h3 { font-family: 'Cormorant', serif; font-style: italic; font-size: 19px; color: var(--ink); margin: 12px 0 4px; }
+.lamp-sch-a strong { color: var(--ink); font-weight: 600; }
+.lamp-sch-a em { color: var(--gold); font-style: italic; }
+.lamp-sch-a code { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--accent); }
+.lamp-sch-a ul { margin: 6px 0; padding-left: 18px; } .lamp-sch-a li { margin: 3px 0; }
+.lamp-sch-a p { margin: 7px 0; }
+.lamp-sch-save { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--ink-faint); background: transparent; border: 1px solid var(--line); border-radius: 3px; padding: 4px 9px; cursor: pointer; margin-top: 6px; }
+.lamp-sch-save:hover { color: var(--gold); border-color: var(--gold); }
+.lamp-sch-pending { font-family: 'Spectral', serif; font-style: italic; color: var(--ink-faint); }
+.lamp-sch-hint { font-family: 'Spectral', serif; font-style: italic; font-size: 14px; line-height: 1.5; color: var(--ink-faint); }
+.lamp-sch-hint button { color: var(--accent); background: none; border: none; text-decoration: underline; cursor: pointer; font: inherit; }
+.lamp-scholar-ask { display: flex; gap: 6px; align-items: flex-end; border-top: 1px solid var(--line); padding-top: 12px; margin-top: 8px; }
+.lamp-scholar-ask textarea { flex: 1; background: var(--bg); border: 1px solid var(--line); border-radius: 3px; padding: 9px 11px; color: var(--ink); font-family: 'Spectral', serif; font-size: 14px; line-height: 1.45; resize: vertical; }
+.lamp-scholar-ask textarea:focus { outline: none; border-color: var(--accent); }
 .lamp-compose { margin-top: auto; border-top: 1px solid var(--line); padding-top: 14px; }
 .lamp-kinds { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
 .lamp-kind { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); background: transparent; border: 1px solid var(--line); border-radius: 3px; padding: 5px 9px; cursor: pointer; transition: all .15s; }
@@ -553,18 +581,37 @@ dialog::backdrop { background: rgba(8, 5, 3, 0.78); backdrop-filter: blur(4px); 
         <button class="lamp-search-x" id="lamp-margin-x" title="Cerrar (Esc)">✕</button>
       </div>
       <div class="lamp-margin-verse" id="lamp-margin-verse"></div>
-      <div class="lamp-margin-notes" id="lamp-margin-notes"></div>
-      <div class="lamp-compose">
-        <div class="lamp-kinds" id="lamp-kinds">
-          <button class="lamp-kind on" data-kind="note">Nota</button>
-          <button class="lamp-kind" data-kind="question">Pregunta</button>
-          <button class="lamp-kind" data-kind="prayer">Oración</button>
-          <button class="lamp-kind" data-kind="highlight">Destacar</button>
+      <div class="lamp-tabs">
+        <button class="lamp-tab on" data-tab="margen">✎ Margen</button>
+        <button class="lamp-tab" data-tab="erudito">✦ Erudito</button>
+      </div>
+      <div id="lamp-tab-margen" class="lamp-tabpane">
+        <div class="lamp-margin-notes" id="lamp-margin-notes"></div>
+        <div class="lamp-compose">
+          <div class="lamp-kinds" id="lamp-kinds">
+            <button class="lamp-kind on" data-kind="note">Nota</button>
+            <button class="lamp-kind" data-kind="question">Pregunta</button>
+            <button class="lamp-kind" data-kind="prayer">Oración</button>
+            <button class="lamp-kind" data-kind="highlight">Destacar</button>
+          </div>
+          <textarea id="lamp-note-body" class="lamp-note-body" placeholder="En el margen, para siempre…" rows="3"></textarea>
+          <div class="lamp-compose-row">
+            <button class="lamp-memorize" id="lamp-memorize" title="Guardar para memorizar (Fase B → mazo de repaso)">✶ Memorizar</button>
+            <button class="lamp-save" id="lamp-note-save">Guardar</button>
+          </div>
         </div>
-        <textarea id="lamp-note-body" class="lamp-note-body" placeholder="En el margen, para siempre…" rows="3"></textarea>
-        <div class="lamp-compose-row">
-          <button class="lamp-memorize" id="lamp-memorize" title="Guardar para memorizar (Fase B → mazo de repaso)">✶ Memorizar</button>
-          <button class="lamp-save" id="lamp-note-save">Guardar</button>
+      </div>
+      <div id="lamp-tab-erudito" class="lamp-tabpane" hidden>
+        <div class="lamp-lenses" id="lamp-lenses">
+          <button class="lamp-lens" data-lens="contexto">Contexto</button>
+          <button class="lamp-lens" data-lens="lengua">Griego / Hebreo</button>
+          <button class="lamp-lens" data-lens="tradiciones">Tradiciones</button>
+          <button class="lamp-lens" data-lens="aplicacion">Para mi vida</button>
+        </div>
+        <div class="lamp-scholar-thread" id="lamp-scholar-thread"></div>
+        <div class="lamp-scholar-ask">
+          <textarea id="lamp-scholar-q" rows="2" placeholder="Pregúntale al erudito…"></textarea>
+          <button class="lamp-save" id="lamp-scholar-send">Preguntar</button>
         </div>
       </div>
     </aside>
@@ -952,9 +999,10 @@ const LAMP = {
   fmtDate(ts) { try { return new Date(ts).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return ''; } },
   openMargin(ref) {
     this.activeRef = ref; this.composeKind = 'note';
+    if (!this.scholar || this.scholar.ref !== ref) this.scholar = { ref, turns: [], pending: false };
     document.getElementById('lamp-margin').hidden = false;
     if (!this.text.rv1909 || !this.text.bsb) Promise.all([this.ensureText('bsb'), this.ensureText('rv1909')]).then(() => { if (this.activeRef === ref) this.renderMargin(); });
-    this.setKind('note'); this.renderMargin();
+    this.setKind('note'); this.setTab('margen'); this.renderMargin();
     setTimeout(() => { const ta = document.getElementById('lamp-note-body'); if (ta) ta.focus(); }, 60);
   },
   closeMargin() { document.getElementById('lamp-margin').hidden = true; this.activeRef = null; },
@@ -987,6 +1035,78 @@ const LAMP = {
     const i = state.memory.findIndex(m => m.ref === ref);
     if (i >= 0) state.memory.splice(i, 1); else state.memory.push({ ref, lang: 'both', added: Date.now() });
     save(); this.renderMargin();
+  },
+
+  /* ── Phase C: Claude as SCHOLAR + interlocutor (never plays priest). API-key path via the shell's callClaude. ── */
+  SCHOLAR_LENSES: {
+    contexto: { label: 'Contexto', q: 'Dame el contexto histórico y cultural de este pasaje: quién escribe, a quién, cuándo, en qué situación, y qué supuestos culturales hay que conocer para leerlo bien.' },
+    lengua: { label: 'Griego / Hebreo', q: 'Haz un breve estudio de las palabras clave en el idioma original (hebreo o griego): transliteración, rango de significado, y dónde la traducción toma una decisión interpretativa.' },
+    tradiciones: { label: 'Tradiciones', q: 'Cómo han leído y aplicado este pasaje las distintas tradiciones — católica, ortodoxa, reformada/protestante y la crítica académica. Atribuye por nombre donde puedas y señala dónde discrepan.' },
+    aplicacion: { label: 'Para mi vida', q: 'Cómo se ha entendido la aplicación de este pasaje a la vida, y qué preguntas honestas me plantea a mí (19 años, estudiante de Government en Georgetown, camino a la consultoría/Bain, ambición y vocación). Ofrece posibilidades y preguntas, no veredictos.' },
+  },
+  buildScholarSystem() {
+    return [
+      'Eres "el erudito" de La Lámpara, una Biblia de estudio para Leandro: 19 años, peruano, estudiante de Government en Georgetown, en camino hacia la consultoría (Bain). Es protestante y quiere entender TODAS las tradiciones.',
+      'TU PAPEL: erudito riguroso e interlocutor honesto. Ofreces contexto histórico y cultural; lengua original (hebreo/griego, con transliteración y matices); estructura literaria; y el ABANICO de lecturas —católica, ortodoxa, reformada/protestante y crítica/académica— atribuidas por nombre cuando sea posible, lado a lado, sin imponer una. También conectas el texto con su vida real (ambición, vocación, ser joven, la presión de Georgetown/Bain) y respondes sus preguntas.',
+      'LÍMITE INNEGOCIABLE: NO hablas en nombre de Dios ("Dios te está diciendo…"), NO dictas veredictos sobre sus decisiones, NO reemplazas a su pastor, iglesia ni comunidad. Tú informas, provocas y preguntas; ÉL discierne, con el Espíritu y su comunidad. La aplicación se ofrece como posibilidades fundamentadas y buenas preguntas, con humildad.',
+      'HONESTIDAD: cita escuelas y eruditos reales; si no sabes, dilo —nunca inventes referencias, datos ni palabras del original. Distingue el consenso del debate; marca lo especulativo.',
+      'ESTILO: español, claro y con densidad real (sin relleno, sin devoción azucarada, sin signos de exclamación gratuitos). Usa términos del original cuando ayuden. Conciso pero sustancioso. Markdown ligero (### subtítulos, **negritas**, listas con -) está bien.',
+    ].join(' ');
+  },
+  mdLite(t) {
+    let s = String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    s = s.replace(/^#{1,4}\s+(.+)$/gm, '<h3>$1</h3>');
+    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/(^|[^*])\*(?!\s)([^*]+?)\*(?!\*)/g, '$1<em>$2</em>').replace(/_(.+?)_/g, '<em>$1</em>').replace(/`([^`]+)`/g, '<code>$1</code>');
+    s = s.replace(/(?:^|\n)((?:\s*[-•]\s+.+(?:\n|$))+)/g, m => '<ul>' + m.trim().split('\n').map(l => '<li>' + l.replace(/^\s*[-•]\s+/, '') + '</li>').join('') + '</ul>');
+    return s.split(/\n{2,}/).map(b => /^\s*<(h3|ul)/.test(b) ? b : '<p>' + b.trim().replace(/\n/g, '<br>') + '</p>').filter(b => b !== '<p></p>').join('');
+  },
+  setTab(tab) {
+    this.tab = tab;
+    document.querySelectorAll('.lamp-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+    document.getElementById('lamp-tab-margen').hidden = tab !== 'margen';
+    document.getElementById('lamp-tab-erudito').hidden = tab !== 'erudito';
+    if (tab === 'erudito') this.renderScholar();
+  },
+  async askScholar(input, label) {
+    const ref = this.activeRef; if (!ref || !isClaudeEnabled()) { this.renderScholar(); return; }
+    if (this.scholar.pending) return;
+    const t = this.verseText(ref);
+    this.scholar.turns.push({ role: 'user', text: label || input });
+    this.scholar.pending = true; this.renderScholar();
+    const prior = this.scholar.turns.slice(0, -1).slice(-4).map(x => (x.role === 'user' ? 'P: ' : 'R: ') + x.text).join('\n');
+    const userMessage = `Pasaje: ${this.refLabel(ref)}\nES: "${t.es}"\nEN (BSB): "${t.en}"` + (prior ? `\n\nConversación previa:\n${prior}` : '') + `\n\nPregunta: ${input}`;
+    try {
+      const out = await callClaude({ system: this.buildScholarSystem(), userMessage, maxTokens: 1100 });
+      this.scholar.turns.push({ role: 'assistant', text: out });
+    } catch (e) {
+      this.scholar.turns.push({ role: 'assistant', text: '⚠ No se pudo consultar al erudito: ' + e.message, error: true });
+    }
+    this.scholar.pending = false;
+    if (this.activeRef === ref && this.tab === 'erudito') this.renderScholar();
+  },
+  renderScholar() {
+    const box = document.getElementById('lamp-scholar-thread'); if (!box) return;
+    const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    document.querySelectorAll('#lamp-lenses .lamp-lens').forEach(b => b.disabled = this.scholar.pending);
+    if (!isClaudeEnabled()) {
+      box.innerHTML = `<div class="lamp-sch-hint">El erudito necesita tu clave de Anthropic. <button id="lamp-sch-settings">Conéctala en Ajustes</button>. Da historia, lenguas originales, el abanico de tradiciones y aplicación a tu vida — informa y pregunta, nunca reemplaza a tu pastor.</div>`;
+      const b = document.getElementById('lamp-sch-settings'); if (b) b.onclick = () => document.getElementById('settings-btn').click();
+      return;
+    }
+    if (!this.scholar.turns.length) { box.innerHTML = `<div class="lamp-sch-hint">Elige una lente, o pregunta lo que quieras sobre ${esc(this.refLabel(this.activeRef))}. El erudito informa y pregunta; tú disciernes.</div>`; return; }
+    let H = '';
+    this.scholar.turns.forEach((x, i) => {
+      if (x.role === 'user') H += `<div class="lamp-sch-q">— ${esc(x.text)}</div>`;
+      else H += `<div class="lamp-sch-a">${this.mdLite(x.text)}${x.error ? '' : `<button class="lamp-sch-save" data-i="${i}" title="Guardar esta respuesta en el margen">✎ Guardar como nota</button>`}</div>`;
+    });
+    if (this.scholar.pending) H += `<div class="lamp-sch-pending">El erudito está leyendo…</div>`;
+    box.innerHTML = H; box.scrollTop = box.scrollHeight;
+  },
+  saveScholarFromThread(i) {
+    const turn = this.scholar.turns[i]; if (!turn || turn.role !== 'assistant') return;
+    state.notes.push({ id: this.uid(), ref: this.activeRef, kind: 'note', body: '✦ Del erudito:\n' + turn.text, created: Date.now(), updated: Date.now() });
+    save(); this.render();
+    try { toast('Guardado en el margen.'); } catch (e) {}
   },
 
   async boot() {
@@ -1024,6 +1144,12 @@ const LAMP = {
     document.getElementById('lamp-memorize').addEventListener('click', () => this.toggleMemorize());
     document.getElementById('lamp-margin-notes').addEventListener('click', e => { const d = e.target.closest('.lamp-note-del'); if (d) this.delNote(d.dataset.id); });
     document.getElementById('lamp-note-body').addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); this.saveNote(); } });
+    // scholar (Phase C)
+    document.querySelector('.lamp-tabs').addEventListener('click', e => { const t = e.target.closest('.lamp-tab'); if (t) this.setTab(t.dataset.tab); });
+    document.getElementById('lamp-lenses').addEventListener('click', e => { const b = e.target.closest('.lamp-lens'); if (b && !b.disabled) { const L = this.SCHOLAR_LENSES[b.dataset.lens]; this.askScholar(L.q, L.label); } });
+    document.getElementById('lamp-scholar-send').addEventListener('click', () => { const q = document.getElementById('lamp-scholar-q'); const v = q.value.trim(); if (v) { q.value = ''; this.askScholar(v, v); } });
+    document.getElementById('lamp-scholar-q').addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); document.getElementById('lamp-scholar-send').click(); } });
+    document.getElementById('lamp-scholar-thread').addEventListener('click', e => { const s = e.target.closest('.lamp-sch-save'); if (s) this.saveScholarFromThread(+s.dataset.i); });
     document.addEventListener('keydown', e => {
       const t = e.target.tagName, typing = (t === 'SELECT' || t === 'INPUT' || t === 'TEXTAREA');
       const searchOpen = !document.getElementById('lamp-search').hidden, marginOpen = !document.getElementById('lamp-margin').hidden;
