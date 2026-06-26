@@ -455,6 +455,44 @@ dialog::backdrop { background: rgba(8, 5, 3, 0.78); backdrop-filter: blur(4px); 
 .lamp-ssnip { font-family: 'Cormorant', serif; font-size: 17px; color: var(--ink-dim); line-height: 1.4; }
 .lamp-ssnip mark { background: rgba(245,166,35,0.22); color: var(--ink); padding: 0 1px; }
 .lamp-shint { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-faint); padding: 14px 10px; }
+
+/* marginalia: the lamp lights verses he's touched */
+.lamp-vnum { cursor: pointer; position: relative; }
+.lamp-vnum:hover { color: var(--gold); }
+.lamp-vrow.noted .lamp-vnum { color: var(--accent); font-weight: 600; }
+.lamp-vrow.noted .lamp-vnum::after { content: ''; position: absolute; right: -3px; top: 4px; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.lamp-vrow.noted .lamp-vtext.es { box-shadow: inset 2px 0 0 rgba(245,166,35,0.5); padding-left: 9px; }
+.lamp-vrow.hl { background: rgba(245,166,35,0.08); }
+.lamp-vrow.hl:hover { background: rgba(245,166,35,0.12); }
+
+.lamp-margin { position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 92vw); z-index: 55; background: var(--bg-elev); border-left: 1px solid var(--line); box-shadow: -12px 0 40px rgba(0,0,0,0.5); display: flex; flex-direction: column; padding: 18px 20px; overflow-y: auto; animation: lampslide .28s cubic-bezier(.2,.9,.25,1); }
+.lamp-margin[hidden] { display: none; }
+@keyframes lampslide { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+.lamp-margin-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.lamp-margin-ref { font-family: 'Cormorant', serif; font-style: italic; font-weight: 600; font-size: 26px; color: var(--ink); }
+.lamp-margin-verse { font-family: 'Cormorant', serif; font-size: 19px; line-height: 1.5; color: var(--ink-dim); border-left: 2px solid var(--accent); padding: 4px 0 4px 14px; margin: 10px 0 18px; }
+.lamp-margin-verse .en { display: block; color: var(--ink-faint); font-size: 16px; margin-top: 6px; }
+.lamp-margin-notes { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.lamp-note { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 11px 13px; position: relative; }
+.lamp-note-kind { font-family: 'JetBrains Mono', monospace; font-size: 8px; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); margin-bottom: 5px; }
+.lamp-note-text { font-family: 'Spectral', serif; font-size: 15px; line-height: 1.5; color: var(--ink); white-space: pre-wrap; }
+.lamp-note-meta { font-family: 'JetBrains Mono', monospace; font-size: 8px; color: var(--ink-faint); margin-top: 7px; }
+.lamp-note-del { position: absolute; top: 8px; right: 9px; font-size: 11px; color: var(--ink-faint); background: transparent; border: none; cursor: pointer; opacity: 0; transition: opacity .15s; }
+.lamp-note:hover .lamp-note-del { opacity: 1; }
+.lamp-note-del:hover { color: var(--danger); }
+.lamp-margin-empty { font-family: 'Spectral', serif; font-style: italic; font-size: 14px; color: var(--ink-faint); margin-bottom: 16px; }
+.lamp-compose { margin-top: auto; border-top: 1px solid var(--line); padding-top: 14px; }
+.lamp-kinds { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+.lamp-kind { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); background: transparent; border: 1px solid var(--line); border-radius: 3px; padding: 5px 9px; cursor: pointer; transition: all .15s; }
+.lamp-kind.on { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+.lamp-kind:not(.on):hover { color: var(--accent); }
+.lamp-note-body { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 3px; padding: 10px 12px; color: var(--ink); font-family: 'Spectral', serif; font-size: 15px; line-height: 1.5; resize: vertical; }
+.lamp-note-body:focus { outline: none; border-color: var(--accent); }
+.lamp-compose-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.lamp-memorize { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-dim); background: transparent; border: 1px solid var(--line); border-radius: 3px; padding: 8px 12px; cursor: pointer; }
+.lamp-memorize:hover, .lamp-memorize.on { color: var(--gold); border-color: var(--gold); }
+.lamp-save { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--bg); background: var(--accent); border: none; border-radius: 3px; padding: 9px 18px; cursor: pointer; }
+.lamp-save:hover { background: var(--gold); }
 </style>
 </head>
 <body>
@@ -509,6 +547,27 @@ dialog::backdrop { background: rgba(8, 5, 3, 0.78); backdrop-filter: blur(4px); 
       </div>
       <div id="lamp-search-results" class="lamp-search-results"></div>
     </div>
+    <aside id="lamp-margin" class="lamp-margin" hidden>
+      <div class="lamp-margin-head">
+        <div><div class="lamp-margin-ref" id="lamp-margin-ref"></div></div>
+        <button class="lamp-search-x" id="lamp-margin-x" title="Cerrar (Esc)">✕</button>
+      </div>
+      <div class="lamp-margin-verse" id="lamp-margin-verse"></div>
+      <div class="lamp-margin-notes" id="lamp-margin-notes"></div>
+      <div class="lamp-compose">
+        <div class="lamp-kinds" id="lamp-kinds">
+          <button class="lamp-kind on" data-kind="note">Nota</button>
+          <button class="lamp-kind" data-kind="question">Pregunta</button>
+          <button class="lamp-kind" data-kind="prayer">Oración</button>
+          <button class="lamp-kind" data-kind="highlight">Destacar</button>
+        </div>
+        <textarea id="lamp-note-body" class="lamp-note-body" placeholder="En el margen, para siempre…" rows="3"></textarea>
+        <div class="lamp-compose-row">
+          <button class="lamp-memorize" id="lamp-memorize" title="Guardar para memorizar (Fase B → mazo de repaso)">✶ Memorizar</button>
+          <button class="lamp-save" id="lamp-note-save">Guardar</button>
+        </div>
+      </div>
+    </aside>
   </main>
 </div>
 
@@ -726,12 +785,14 @@ const LAMP = {
     this.getChapter(bookId, ch).then(({ bsb, es, esLabel, fellBack }) => {
       if (!this.cur || this.cur.bookId !== bookId || this.cur.ch !== ch) return;   // user moved on
       const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+      const refBase = bookId + '.' + ch + '.', mark = {};       // which verses in this chapter carry his layer
+      state.notes.forEach(nt => { if (nt.ref.indexOf(refBase) === 0) { const o = mark[nt.ref] || (mark[nt.ref] = { n: 0, hl: null }); o.n++; if (nt.kind === 'highlight') o.hl = 1; } });
       const nums = Array.from(new Set([...Object.keys(es), ...Object.keys(bsb)].map(Number))).sort((a, b) => a - b);
       let H = `<div class="lamp-colhead"><span class="lh spacer"></span><span class="lh">${esLabel}</span><span class="lh en">BSB</span></div>`;
       for (const n of nums) {
-        const e = es[n], b = bsb[n];
-        H += `<div class="lamp-vrow" data-v="${n}">`
-          + `<span class="lamp-vnum">${n}</span>`
+        const e = es[n], b = bsb[n], ref = refBase + n, m = mark[ref];
+        H += `<div class="lamp-vrow${m && m.hl ? ' hl' : ''}${m ? ' noted' : ''}" data-v="${n}">`
+          + `<span class="lamp-vnum" data-ref="${ref}" title="Notas y marcas">${n}</span>`
           + `<span class="lamp-vtext es${e ? '' : ' miss'}">${e ? esc(e) : '—'}</span>`
           + `<span class="lamp-vtext en${b ? '' : ' miss'}">${b ? esc(b) : '—'}</span>`
           + `</div>`;
@@ -872,6 +933,54 @@ const LAMP = {
     if (btns[this.selIdx]) btns[this.selIdx].scrollIntoView({ block: 'nearest' });
   },
 
+  /* ── Phase B: verse-anchored lifetime marginalia (state.notes / state.memory, gist-synced) ── */
+  uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); },
+  refLabel(ref) { const p = ref.split('.'); return `${this.byId[p[0]].es} ${p[1]}:${p[2]}`; },
+  verseText(ref) {
+    const p = ref.split('.'), rv = this.text.rv1909, bsb = this.text.bsb;
+    const dig = (t) => (t && t[p[0]] && t[p[0]][p[1]] && t[p[0]][p[1]][p[2]]) || '';
+    return { es: dig(rv), en: dig(bsb) };
+  },
+  fmtDate(ts) { try { return new Date(ts).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return ''; } },
+  openMargin(ref) {
+    this.activeRef = ref; this.composeKind = 'note';
+    document.getElementById('lamp-margin').hidden = false;
+    if (!this.text.rv1909 || !this.text.bsb) Promise.all([this.ensureText('bsb'), this.ensureText('rv1909')]).then(() => { if (this.activeRef === ref) this.renderMargin(); });
+    this.setKind('note'); this.renderMargin();
+    setTimeout(() => { const ta = document.getElementById('lamp-note-body'); if (ta) ta.focus(); }, 60);
+  },
+  closeMargin() { document.getElementById('lamp-margin').hidden = true; this.activeRef = null; },
+  renderMargin() {
+    const ref = this.activeRef; if (!ref) return;
+    const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    document.getElementById('lamp-margin-ref').textContent = this.refLabel(ref);
+    const t = this.verseText(ref);
+    document.getElementById('lamp-margin-verse').innerHTML = `${esc(t.es) || '…'}<span class="en">${esc(t.en) || ''}</span>`;
+    const KIND = { note: 'Nota', question: 'Pregunta', prayer: 'Oración', highlight: 'Destacado' };
+    const notes = state.notes.filter(n => n.ref === ref).sort((a, b) => a.created - b.created);
+    document.getElementById('lamp-margin-notes').innerHTML = notes.length
+      ? notes.map(n => `<div class="lamp-note"><button class="lamp-note-del" data-id="${n.id}" title="Borrar">✕</button><div class="lamp-note-kind">${KIND[n.kind] || 'Nota'}</div>${n.body ? `<div class="lamp-note-text">${esc(n.body)}</div>` : ''}<div class="lamp-note-meta">${this.fmtDate(n.created)}</div></div>`).join('')
+      : `<div class="lamp-margin-empty">Aún no hay nada en este margen. Escribe la primera línea — quedará para toda la vida.</div>`;
+    const memo = state.memory.some(m => m.ref === ref), mb = document.getElementById('lamp-memorize');
+    mb.classList.toggle('on', memo); mb.textContent = memo ? '✶ En el mazo' : '✶ Memorizar';
+  },
+  setKind(k) { this.composeKind = k; document.querySelectorAll('#lamp-kinds .lamp-kind').forEach(b => b.classList.toggle('on', b.dataset.kind === k)); },
+  saveNote() {
+    const ref = this.activeRef; if (!ref) return;
+    const ta = document.getElementById('lamp-note-body'), body = ta.value.trim(), kind = this.composeKind || 'note';
+    if (!body && kind !== 'highlight') { ta.focus(); return; }   // highlight may be bodyless; the rest need words
+    state.notes.push({ id: this.uid(), ref, kind, body, created: Date.now(), updated: Date.now() });
+    save(); ta.value = ''; this.setKind('note');
+    this.renderMargin(); this.render();                          // re-render chapter → the lamp lights this verse
+  },
+  delNote(id) { state.notes = state.notes.filter(n => n.id !== id); save(); this.renderMargin(); this.render(); },
+  toggleMemorize() {
+    const ref = this.activeRef; if (!ref) return;
+    const i = state.memory.findIndex(m => m.ref === ref);
+    if (i >= 0) state.memory.splice(i, 1); else state.memory.push({ ref, lang: 'both', added: Date.now() });
+    save(); this.renderMargin();
+  },
+
   async boot() {
     document.querySelector('.brand h1').textContent = APP.name;
     try {
@@ -899,10 +1008,19 @@ const LAMP = {
     });
     document.getElementById('lamp-search-results').addEventListener('click', e => { const b = e.target.closest('.lamp-sresult'); if (b) this.pickResult(+b.dataset.idx); });
     document.getElementById('lamp-search').addEventListener('click', e => { if (e.target.id === 'lamp-search') this.closeSearch(); });
+    // marginalia
+    document.getElementById('lamp-read').addEventListener('click', e => { const vn = e.target.closest('.lamp-vnum'); if (vn && vn.dataset.ref) this.openMargin(vn.dataset.ref); });
+    document.getElementById('lamp-margin-x').addEventListener('click', () => this.closeMargin());
+    document.getElementById('lamp-kinds').addEventListener('click', e => { const b = e.target.closest('.lamp-kind'); if (b) this.setKind(b.dataset.kind); });
+    document.getElementById('lamp-note-save').addEventListener('click', () => this.saveNote());
+    document.getElementById('lamp-memorize').addEventListener('click', () => this.toggleMemorize());
+    document.getElementById('lamp-margin-notes').addEventListener('click', e => { const d = e.target.closest('.lamp-note-del'); if (d) this.delNote(d.dataset.id); });
+    document.getElementById('lamp-note-body').addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); this.saveNote(); } });
     document.addEventListener('keydown', e => {
       const t = e.target.tagName, typing = (t === 'SELECT' || t === 'INPUT' || t === 'TEXTAREA');
-      const searchOpen = !document.getElementById('lamp-search').hidden;
-      if (e.key === '/' && !typing && !searchOpen) { e.preventDefault(); this.openSearch(); return; }
+      const searchOpen = !document.getElementById('lamp-search').hidden, marginOpen = !document.getElementById('lamp-margin').hidden;
+      if (e.key === 'Escape' && marginOpen) { this.closeMargin(); return; }
+      if (e.key === '/' && !typing && !searchOpen && !marginOpen) { e.preventDefault(); this.openSearch(); return; }
       if (typing || searchOpen) return;
       if (e.key === 'ArrowLeft') this.step(-1); else if (e.key === 'ArrowRight') this.step(1);
     });
