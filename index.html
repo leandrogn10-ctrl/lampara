@@ -871,11 +871,12 @@ document.getElementById('brand-tagline').textContent = APP.tagline;
 document.getElementById('tab-home-icon').textContent = APP.iconLetter;
 
 /* ── app hooks (SLOT:APP-LOGIC) — La Lámpara reader ── */
-function appDefaultState() { return { reading: { bookId: 'john', ch: 1 }, spanishSrc: 'rv1909', notes: [], memory: [], plans: [] }; }
+function appDefaultState() { return { reading: { bookId: 'john', ch: 1 }, spanishSrc: 'rv1909', notes: [], memory: [], plans: [], read: {} }; }
 function appMigrate(s) {
   s.reading = s.reading || { bookId: 'john', ch: 1 };
   s.spanishSrc = s.spanishSrc || 'rv1909';
   for (const k of ['notes', 'memory', 'plans']) s[k] = s[k] || [];
+  s.read = s.read || {};                                  // reading-activity log (YYYY-MM-DD → chapters) — the city's streak.bible bridge reads this
   return s;
 }
 function looksLikeMyState(s) {                            // OUR gist = has settings AND a reading pointer + his layer arrays
@@ -981,10 +982,20 @@ const LAMP = {
         if (row) { row.scrollIntoView({ block: 'center' }); row.classList.add('flash'); }
         else root.scrollTop = 0;
       } else root.scrollTop = 0;
+      this.logRead(bookId, ch);                            // record the reading day for the city's streak.bible bridge
     }).catch(err => { root.innerHTML = `<div class="lamp-loading">No se pudo cargar el capítulo: ${err.message}</div>`; });
     this.syncSrcButtons();
   },
 
+  _logged: {},
+  logRead(bookId, ch) {                                   // mark today as a reading day (dedup per chapter/session); trimmed to ~120 days
+    const d = new Date(), key = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+    const dk = key + '|' + bookId + '.' + ch; if (this._logged[dk]) return; this._logged[dk] = 1;
+    state.read = state.read || {}; state.read[key] = (state.read[key] || 0) + 1;
+    const cut = Date.now() - 120 * 86400000;
+    for (const k in state.read) { if (new Date(k + 'T12:00:00').getTime() < cut) delete state.read[k]; }
+    save();
+  },
   syncSrcButtons() {
     document.querySelectorAll('#lamp-srcs .lamp-src').forEach(b => b.classList.toggle('on', b.dataset.src === state.spanishSrc));
   },
