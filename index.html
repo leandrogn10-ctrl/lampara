@@ -1320,10 +1320,10 @@ const LAMP = {
     const lines = Object.keys(chap).map(Number).sort((a, b) => a - b).map(v => `${v} ${chap[v]}`).join('\n');
     const ctx = this.buildCorpusContext(bookId, ch), sig = this.chapterNotesSig(bookId, ch);
     const userMessage = `Estudia el capítulo ENTERO: ${this.byId[bookId].es} ${ch}.\nTexto (Reina-Valera 1909):\n${lines}\n\n`
-      + (ctx.hasAny ? `EL LECTOR HA IDO ANOTANDO LA BIBLIA (su pensamiento a lo largo del tiempo, a través de varios pasajes). RESPONDE directamente a sus PREGUNTAS, dialoga con sus notas, y CONECTA con lo que ha reflexionado en OTROS pasajes cuando sea pertinente —teje los hilos. Sé honesto y erudito, no lo halagues:\n${ctx.text}\n\n` : '')
+      + (ctx.hasAny ? `EL LECTOR HA IDO ANOTANDO LA BIBLIA (su pensamiento a lo largo del tiempo, a través de varios pasajes). PRIORIDAD: responde directamente a sus PREGUNTAS de ESTE capítulo y dialoga con sus notas de aquí. Puedes tejer un hilo con lo que reflexionó en OTROS pasajes, pero con criterio: solo la conexión MÁS reveladora, no todas —mejor una honda que cinco dispersas. Sé honesto y erudito, no lo halagues:\n${ctx.text}\n\n` : '')
       + `Devuelve SOLO JSON válido (sin markdown, sin texto fuera del objeto) con esta forma exacta:\n`
       + `{"panorama":"2-4 frases: de qué trata el capítulo y su estructura literaria",`
-      + `"dialogo":${ctx.hasAny ? `"responde a SUS preguntas y dialoga con sus notas citando el versículo (v3, v5…); CONECTA con lo que anotó en otros pasajes cuando aplique, nombrando esa referencia"` : `""`},`
+      + `"dialogo":${ctx.hasAny ? `"PRIMERO responde a las preguntas y notas de ESTE capítulo, citando el versículo (v3, v5…). Las conexiones con otros pasajes son SECUNDARIAS: como mucho UNA o DOS, las más pertinentes, integradas en la prosa —NUNCA una lista de 'Conexión con…' por cada nota previa. Pocas y hondas, no muchas y dispersas"` : `""`},`
       + `"contexto":"contexto histórico y cultural del capítulo",`
       + `"lengua":"2-4 términos clave del idioma original (hebreo/griego): transliteración y matiz",`
       + `"tradiciones":"cómo lo leen las tradiciones —católica, ortodoxa, reformada, crítica— atribuido por nombre donde puedas",`
