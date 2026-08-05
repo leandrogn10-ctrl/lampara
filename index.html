@@ -779,9 +779,9 @@ dialog::backdrop { background: rgba(8, 5, 3, 0.78); backdrop-filter: blur(4px); 
           <label class="span-2">Anthropic API key<input type="password" id="claude-api-key" placeholder="sk-ant-..." autocomplete="off"></label>
           <label>Model
             <select id="claude-model">
-              <option value="claude-haiku-4-5-20251001">Haiku — fast & cheap</option>
-              <option value="claude-sonnet-4-6">Sonnet — balanced</option>
-              <option value="claude-opus-4-8">Opus — best, slowest</option>
+              <option value="claude-haiku-4-5-20251001">Haiku — fast &amp; cheap</option>
+              <option value="claude-sonnet-5">Sonnet — balanced</option>
+              <option value="claude-opus-5">Opus — best, slowest</option>
             </select>
           </label>
           <label>Billing
@@ -1210,8 +1210,12 @@ const LAMP = {
   },
 
   /* ── Phase C: Claude as SCHOLAR + interlocutor (never plays priest). API-key path via the shell's callClaude. ── */
+  // Exact model ids, never the CLI aliases: an alias follows whatever the CLI calls current, so the
+  // model changes with no diff and no failing test. Effort is per-call for the same reason the model
+  // is — the helper's global default is 'low' (tuned for chat), which is wrong for a chapter study.
   MODEL_VERSE: 'claude-haiku-4-5-20251001',   // per-verse lenses + Q&A → fast/cheap
-  MODEL_CHAPTER: 'claude-sonnet-4-6',          // whole-chapter study → deeper, worth the cost
+  MODEL_CHAPTER: 'claude-sonnet-5',           // whole-chapter study → deeper, worth the cost
+  EFFORT_CHAPTER: 'high',                     // ring structure, cross-refs, holding v12b against v14 — low effort gives prose that runs without organizing itself
   SCHOLAR_LENSES: {
     contexto: { label: 'Contexto', q: 'Dame el contexto histórico y cultural de este pasaje: quién escribe, a quién, cuándo, en qué situación, y qué supuestos culturales hay que conocer para leerlo bien.' },
     lengua: { label: 'Griego / Hebreo', q: 'Haz un breve estudio de las palabras clave en el idioma original (hebreo o griego): transliteración, rango de significado, y dónde la traducción toma una decisión interpretativa.' },
@@ -1364,7 +1368,9 @@ const LAMP = {
       + `"pregunta":"una sola pregunta para meditar"}\n`
       + `"claves": elige de 3 a 5 versículos. ${ctx.hasCurrent ? 'Si un versículo que él anotó en este capítulo es relevante, inclúyelo entre las claves. ' : ''}Sé CONCISO: cada campo de texto en 2-4 frases densas (no te extiendas, debe caber completo). Recuerda el límite: informas y preguntas, no hablas por Dios ni dictas veredictos; no inventes datos. Markdown ligero (**negritas**, _itálica_) permitido en las cadenas.`;
     try {
-      const out = await callClaude({ system: this.buildScholarSystem(), userMessage, maxTokens: 4096, model: this.MODEL_CHAPTER });
+      // maxTokens covers thinking + answer on Sonnet 5 (adaptive thinking is on by default), so the
+      // old 4096 would now truncate the study mid-sentence rather than just budget the prose.
+      const out = await callClaude({ system: this.buildScholarSystem(), userMessage, maxTokens: 12000, model: this.MODEL_CHAPTER, effort: this.EFFORT_CHAPTER });
       const j = this._extractJSON(out); if (!j) throw new Error(out && out.length > 40 ? 'respuesta incompleta, reintenta' : 'formato inesperado');
       const obj = JSON.parse(j); obj._sig = sig;
       try { localStorage.setItem(this.studyCacheKey(bookId, ch), JSON.stringify(obj)); } catch (e) {}
@@ -1389,7 +1395,8 @@ const LAMP = {
   },
 
   /* ── Phase D #6: the notebook — search + synthesize his OWN corpus (the archivist reads HIM, not Scripture) ── */
-  MODEL_SYNTH: 'claude-sonnet-4-6',
+  MODEL_SYNTH: 'claude-sonnet-5',
+  EFFORT_SYNTH: 'medium',
   nb: { kind: 'all', synth: null },
   hlWords(t, words) {
     const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
@@ -1446,7 +1453,7 @@ const LAMP = {
     this.nb.synth = 'pending'; this.renderNotebook();
     const system = 'Eres el archivista de La Lámpara. Tu tarea NO es interpretar la Biblia, sino LEER a Leandro: sintetizar lo que ÉL ha escrito en sus propias notas marginales. Reporta SUS ideas, su evolución, sus tensiones y preguntas abiertas —citando sus referencias (libro cap:vers)—. No inventes nada que sus notas no digan; si no hay material, dilo con honestidad. No prediques ni des veredictos: lo estás reflejando a él.';
     const userMessage = (q ? `Pregunta de Leandro sobre su propio pensamiento: «${q}».\n\n` : `Haz una síntesis de los temas de sus notas.\n\n`) + `Sus notas:\n${digest}\n\nSintetiza lo que ÉL ha pensado, citando sus referencias. Señala patrones, tensiones y preguntas abiertas. Español, markdown ligero (### / ** / -).`;
-    try { this.nb.synth = await callClaude({ system, userMessage, maxTokens: 1400, model: this.MODEL_SYNTH }); }
+    try { this.nb.synth = await callClaude({ system, userMessage, maxTokens: 6000, model: this.MODEL_SYNTH, effort: this.EFFORT_SYNTH }); }
     catch (e) { this.nb.synth = '⚠ No se pudo sintetizar: ' + e.message; }
     this.renderNotebook();
   },
@@ -1497,7 +1504,7 @@ const LAMP = {
     const system = 'Eres un guía de lectura bíblica para Leandro (protestante, 19, Georgetown). Diseñas planes de lectura con sentido temático o narrativo, realistas y abarcables. NO gamificas: es un camino, no una obligación.';
     const userMessage = `Objetivo de Leandro: «${goal}».\nDiseña un plan de lectura de la Biblia hacia ese objetivo. Devuelve SOLO JSON válido:\n{"name":"nombre corto del plan","units":[{"label":"etiqueta legible (p.ej. 'Romanos 1–4' o 'Salmo 22; Mateo 27')","chapters":[{"book":"<nombre del libro en español>","ch":<número>}]}]}\nEntre 6 y 24 unidades, cada una abarcable en una sentada, ordenadas con sentido pedagógico. Solo libros y capítulos que existen. Nada de texto fuera del JSON.`;
     try {
-      const out = await callClaude({ system, userMessage, maxTokens: 3000, model: this.MODEL_CHAPTER });
+      const out = await callClaude({ system, userMessage, maxTokens: 8000, model: this.MODEL_CHAPTER, effort: 'medium' });
       const j = this._extractJSON(out); if (!j) throw new Error('formato');
       const obj = JSON.parse(j);
       const units = (obj.units || []).map(u => {
@@ -1590,6 +1597,15 @@ const LAMP = {
 };
 
 /* ── state skeleton ── */
+// Legacy → current model ids. Declared beside migrate() (its only consumer) so it can't be read
+// before this line runs.
+const CLAUDE_MODEL_MIGRATIONS = {
+  'claude-sonnet-4-6': 'claude-sonnet-5',
+  'claude-opus-4-8': 'claude-opus-5',
+  'sonnet': 'claude-sonnet-5',   // bare aliases, if any snapshot ever stored one
+  'opus': 'claude-opus-5',
+  'haiku': 'claude-haiku-4-5-20251001',
+};
 function migrate(s) {
   s.settings = s.settings || {};
   s.settings.claudeRules = s.settings.claudeRules ?? DEFAULT_CLAUDE_RULES;
@@ -1598,6 +1614,10 @@ function migrate(s) {
   // Billing path, added after `claude` shipped — a restored pre-mode snapshot arrives with
   // mode === undefined, so merge over the default rather than trusting the saved object wholesale.
   s.settings.claude.mode = s.settings.claude.mode || 'auto';   // 'auto' | 'sub' | 'api'
+  // A model id stored before the pin was tightened is still a legal *string* — merging restores it
+  // untouched and it flows straight to the API, silently exempt from the current allowed set. So
+  // sweep the stored row too, not just the defaults.
+  s.settings.claude.model = CLAUDE_MODEL_MIGRATIONS[s.settings.claude.model] || s.settings.claude.model;
   s.settings.theme = s.settings.theme || 'macchiato';
   s.lastModified = s.lastModified || Date.now();
   return appMigrate(s);
@@ -1872,11 +1892,10 @@ function losPair() {
     .finally(() => clearTimeout(timer));
   return losTokenPromise;
 }
-function losModelAlias(id) {   // the CLI's --model takes a short alias, not the API's full model id
-  const s = (id || '').toLowerCase();
-  return s.includes('opus') ? 'opus' : s.includes('haiku') ? 'haiku' : 'sonnet';
-}
-async function callClaudeSub({ system, userMessage, model, maxTokens }) {
+/* No alias mapping here on purpose: the CLI's --model takes a full model id as well as an alias, and
+   an alias resolves to whatever the CLI currently calls 'sonnet' — so the model swaps under you with
+   no diff, no log line, and no failing test. Send the exact id the caller pinned. */
+async function callClaudeSub({ system, userMessage, model, maxTokens, effort }) {
   const tok = await losPair();
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), 90000);   // matches the helper's own CLAUDE_TIMEOUT
@@ -1884,7 +1903,7 @@ async function callClaudeSub({ system, userMessage, model, maxTokens }) {
   try {
     res = await fetch(LOS_HELPER_URL + '/claude', {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'X-LOS-Token': tok || '' },
-      body: JSON.stringify({ system: system || '', prompt: userMessage, model: losModelAlias(model), max_tokens: maxTokens }),
+      body: JSON.stringify({ system: system || '', prompt: userMessage, model: model || '', max_tokens: maxTokens, effort: effort || '' }),
       signal: ac.signal,
     });
   } finally { clearTimeout(timer); }
@@ -1919,10 +1938,10 @@ function noteVia(v) { CLAUDE_VIA = v; try { renderClaudeStatus(); } catch (e) {}
 
 /* ── Claude plumbing (Bitácora's; system prompt comes from the appBuildClaudeSystem slot) ── */
 function isClaudeEnabled() { return !!(state.settings.claude.enabled && (canUseApi() || canUseSub())); }
-async function callClaude({ system, userMessage, maxTokens = 350, model }) {
+async function callClaude({ system, userMessage, maxTokens = 350, model, effort }) {
   if (canUseSub()) {
     try {
-      const t = await callClaudeSub({ system: system ?? appBuildClaudeSystem(), userMessage, model: model || state.settings.claude.model, maxTokens });
+      const t = await callClaudeSub({ system: system ?? appBuildClaudeSystem(), userMessage, model: model || state.settings.claude.model, maxTokens, effort });
       noteVia('sub');
       return t;
     } catch (e) {
@@ -1935,7 +1954,12 @@ async function callClaude({ system, userMessage, maxTokens = 350, model }) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': state.settings.claude.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-    body: JSON.stringify({ model: model || state.settings.claude.model, max_tokens: maxTokens, system: system ?? appBuildClaudeSystem(), messages: [{ role: 'user', content: userMessage }] }),
+    // output_config only when an effort was actually asked for: Haiku 4.5 (the per-verse model)
+    // rejects the effort parameter outright, so sending a default would 400 the cheap path.
+    body: JSON.stringify(Object.assign(
+      { model: model || state.settings.claude.model, max_tokens: maxTokens, system: system ?? appBuildClaudeSystem(), messages: [{ role: 'user', content: userMessage }] },
+      effort ? { output_config: { effort } } : {},
+    )),
   });
   if (!res.ok) {
     const txt = await res.text();
