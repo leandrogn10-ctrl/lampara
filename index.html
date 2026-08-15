@@ -1552,7 +1552,7 @@ const LAMP = {
     document.getElementById('lamp-note-save').addEventListener('click', () => this.saveNote());
     document.getElementById('lamp-memorize').addEventListener('click', () => this.toggleMemorize());
     document.getElementById('lamp-margin-notes').addEventListener('click', e => { const d = e.target.closest('.lamp-note-del'); if (d) this.delNote(d.dataset.id); });
-    document.getElementById('lamp-note-body').addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); this.saveNote(); } });
+    document.getElementById('lamp-note-body').addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey || e.shiftKey) && e.key === 'Enter') { e.preventDefault(); this.saveNote(); } });
     // scholar (Phase C)
     document.querySelector('.lamp-tabs').addEventListener('click', e => { const t = e.target.closest('.lamp-tab'); if (t) this.setTab(t.dataset.tab); });
     document.getElementById('lamp-lenses').addEventListener('click', e => { const b = e.target.closest('.lamp-lens'); if (b && !b.disabled) { const L = this.SCHOLAR_LENSES[b.dataset.lens]; this.askScholar(L.q, L.label); } });
