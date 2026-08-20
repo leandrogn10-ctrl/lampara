@@ -2,4 +2,5 @@
 *.key
 .env
 .DS_Store
-.claude/          # runtime launch config — rewritten between sessions, never source
+.claude/
+# ^ runtime launch config — rewritten between sessions, never source
