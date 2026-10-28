@@ -1219,12 +1219,18 @@ const LAMP = {
     contexto: { label: 'Contexto', q: 'Dame el contexto histórico y cultural de este pasaje: quién escribe, a quién, cuándo, en qué situación, y qué supuestos culturales hay que conocer para leerlo bien.' },
     lengua: { label: 'Griego / Hebreo', q: 'Haz un breve estudio de las palabras clave en el idioma original (hebreo o griego): transliteración, rango de significado, y dónde la traducción toma una decisión interpretativa.' },
     tradiciones: { label: 'Tradiciones', q: 'Cómo han leído y aplicado este pasaje las distintas tradiciones — católica, ortodoxa, reformada/protestante y la crítica académica. Atribuye por nombre donde puedas y señala dónde discrepan.' },
-    aplicacion: { label: 'Para mi vida', q: 'Cómo se ha entendido la aplicación de este pasaje a la vida, y qué preguntas honestas me plantea a mí (19 años, estudiante de Government en Georgetown, camino a la consultoría/Bain, ambición y vocación). Ofrece posibilidades y preguntas, no veredictos.' },
+    aplicacion: { label: 'Para mi vida', q: 'Cómo se ha entendido la aplicación de este pasaje a la vida, y qué preguntas honestas me plantea a mí. Ofrece posibilidades y preguntas, no veredictos.' },
   },
+  // The ONE description of the reader. It used to name his school and his employer in four prompts at
+  // once (system, lens, JSON field, plans), and 38 of 38 cached chapter studies (Job 5–42) answered
+  // "Para tu vida" through Georgetown/Bain — a résumé repeated three times per call reads as the brief.
+  READER: 'Leandro: 20 años, universitario peruano que vive en Washington DC, protestante, que quiere entender TODAS las tradiciones.',
+  APPLY_RULE: 'APLICACIÓN: su vida es más ancha que su carrera —fe y dudas, familia, amistades, amor, el Perú y vivir lejos de casa, el sufrimiento ajeno, la justicia y la vida pública, el dinero, la muerte, el tiempo, la escritura—. Elige la dimensión que el PASAJE abre (y la que sus notas del margen ya tocan), no la que su currículum sugiere; no nombres su universidad ni su trabajo salvo que el texto lo pida de verdad, y no repitas de capítulo en capítulo la misma jugada retórica. A veces lo honesto es decir que el pasaje no se traslada directo a su vida.',
   buildScholarSystem() {
     return [
-      'Eres "el erudito" de La Lámpara, una Biblia de estudio para Leandro: 19 años, peruano, estudiante de Government en Georgetown, en camino hacia la consultoría (Bain). Es protestante y quiere entender TODAS las tradiciones.',
-      'TU PAPEL: erudito riguroso e interlocutor honesto. Ofreces contexto histórico y cultural; lengua original (hebreo/griego, con transliteración y matices); estructura literaria; y el ABANICO de lecturas —católica, ortodoxa, reformada/protestante y crítica/académica— atribuidas por nombre cuando sea posible, lado a lado, sin imponer una. También conectas el texto con su vida real (ambición, vocación, ser joven, la presión de Georgetown/Bain) y respondes sus preguntas.',
+      `Eres "el erudito" de La Lámpara, una Biblia de estudio para ${this.READER}`,
+      'TU PAPEL: erudito riguroso e interlocutor honesto. Ofreces contexto histórico y cultural; lengua original (hebreo/griego, con transliteración y matices); estructura literaria; y el ABANICO de lecturas —católica, ortodoxa, reformada/protestante y crítica/académica— atribuidas por nombre cuando sea posible, lado a lado, sin imponer una. También conectas el texto con su vida real y respondes sus preguntas.',
+      this.APPLY_RULE,
       'LÍMITE INNEGOCIABLE: NO hablas en nombre de Dios ("Dios te está diciendo…"), NO dictas veredictos sobre sus decisiones, NO reemplazas a su pastor, iglesia ni comunidad. Tú informas, provocas y preguntas; ÉL discierne, con el Espíritu y su comunidad. La aplicación se ofrece como posibilidades fundamentadas y buenas preguntas, con humildad.',
       'HONESTIDAD: cita escuelas y eruditos reales; si no sabes, dilo —nunca inventes referencias, datos ni palabras del original. Distingue el consenso del debate; marca lo especulativo.',
       'ESTILO: español, claro y con densidad real (sin relleno, sin devoción azucarada, sin signos de exclamación gratuitos). Usa términos del original cuando ayuden. Conciso pero sustancioso. Markdown ligero (### subtítulos, **negritas**, listas con -) está bien.',
@@ -1363,7 +1369,7 @@ const LAMP = {
       + `"lengua":"2-4 términos clave del idioma original (hebreo/griego): transliteración y matiz",`
       + `"tradiciones":"cómo lo leen las tradiciones —católica, ortodoxa, reformada, crítica— atribuido por nombre donde puedas",`
       + `"claves":[{"v":<número de versículo>,"porque":"por qué es especialmente significativo"}],`
-      + `"aplicacion":"aplicación a la vida de Leandro (19, Georgetown, camino a Bain) como posibilidades y preguntas, no veredictos",`
+      + `"aplicacion":"aplicación a la vida de Leandro (según la regla de APLICACIÓN) como posibilidades y preguntas, no veredictos",`
       + `"pregunta":"una sola pregunta para meditar"}\n`
       + `"claves": elige de 3 a 5 versículos. ${ctx.hasCurrent ? 'Si un versículo que él anotó en este capítulo es relevante, inclúyelo entre las claves. ' : ''}Sé CONCISO: cada campo de texto en 2-4 frases densas (no te extiendas, debe caber completo). Recuerda el límite: informas y preguntas, no hablas por Dios ni dictas veredictos; no inventes datos. Markdown ligero (**negritas**, _itálica_) permitido en las cadenas.`;
     try {
@@ -1503,7 +1509,7 @@ const LAMP = {
     if (!goal) return;
     if (!isClaudeEnabled()) { try { toast('Necesitas tu clave de Anthropic en Ajustes para diseñar un plan.'); } catch (e) {} return; }
     const btn = document.getElementById('lamp-plan-custom-go'), old = btn.textContent; btn.disabled = true; btn.textContent = 'Diseñando…';
-    const system = 'Eres un guía de lectura bíblica para Leandro (protestante, 19, Georgetown). Diseñas planes de lectura con sentido temático o narrativo, realistas y abarcables. NO gamificas: es un camino, no una obligación.';
+    const system = `Eres un guía de lectura bíblica para ${this.READER} Diseñas planes de lectura con sentido temático o narrativo, realistas y abarcables. NO gamificas: es un camino, no una obligación.`;
     const userMessage = `Objetivo de Leandro: «${goal}».\nDiseña un plan de lectura de la Biblia hacia ese objetivo. Devuelve SOLO JSON válido:\n{"name":"nombre corto del plan","units":[{"label":"etiqueta legible (p.ej. 'Romanos 1–4' o 'Salmo 22; Mateo 27')","chapters":[{"book":"<nombre del libro en español>","ch":<número>}]}]}\nEntre 6 y 24 unidades, cada una abarcable en una sentada, ordenadas con sentido pedagógico. Solo libros y capítulos que existen. Nada de texto fuera del JSON.`;
     try {
       const out = await callClaude({ system, userMessage, maxTokens: 8000, model: this.MODEL_CHAPTER, effort: 'medium', timeout: 240 });   // hasta 24 unidades de JSON en Sonnet: no cabe en el default de chat

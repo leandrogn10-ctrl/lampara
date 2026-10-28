@@ -1,6 +1,6 @@
 // App-shell service worker — offline-first for the app shell, pass-through for APIs.
 // SLOT: rename CACHE_NAME per app (e.g. 'cuaderno-v1') and bump the suffix to force-refresh clients.
-const CACHE_NAME = 'lampara-v4';
+const CACHE_NAME = 'lampara-v5';
 // Every sibling PWA is served from the SAME origin (leandrogn10-ctrl.github.io) and shares one CacheStorage:
 // activate deletes only THIS app's old caches — prefix = CACHE_NAME minus its version. The old `k !== CACHE_NAME` filter
 // wiped the siblings' caches (La Olla's, La Forja's media) on every deploy.
